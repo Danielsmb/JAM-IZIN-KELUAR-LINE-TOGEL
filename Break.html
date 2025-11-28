@@ -13,6 +13,13 @@
             --light: #e0e0ff;
             --danger: #ff006e;
             --warning: #ffbd00;
+            --success: #00ff9d;
+            --info: #00b8ff;
+            --accent: #ff00ff;
+            --gradient-1: linear-gradient(135deg, #00ff9d, #00b8ff);
+            --gradient-2: linear-gradient(135deg, #ff006e, #ffbd00);
+            --gradient-3: linear-gradient(135deg, #00b8ff, #ff00ff);
+            --gradient-4: linear-gradient(135deg, #ffbd00, #00ff9d);
         }
         
         * {
@@ -29,7 +36,8 @@
             overflow-x: hidden;
             background-image: 
                 radial-gradient(circle at 10% 20%, rgba(0, 255, 157, 0.05) 0%, transparent 20%),
-                radial-gradient(circle at 90% 80%, rgba(0, 184, 255, 0.05) 0%, transparent 20%);
+                radial-gradient(circle at 90% 80%, rgba(0, 184, 255, 0.05) 0%, transparent 20%),
+                url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect x="0" y="0" width="100" height="100" fill="none" stroke="rgba(0, 255, 157, 0.05)" stroke-width="0.5"/><text x="10" y="20" font-family="monospace" font-size="10" fill="rgba(0, 255, 157, 0.1)">01001</text><text x="60" y="40" font-family="monospace" font-size="10" fill="rgba(0, 184, 255, 0.1)">11010</text><text x="20" y="70" font-family="monospace" font-size="10" fill="rgba(255, 0, 110, 0.1)">00110</text><text x="70" y="90" font-family="monospace" font-size="10" fill="rgba(255, 189, 0, 0.1)">10101</text></svg>');
         }
         
         .container {
@@ -46,6 +54,23 @@
             padding: 20px 0;
             border-bottom: 1px solid rgba(0, 255, 157, 0.2);
             margin-bottom: 30px;
+            position: relative;
+        }
+        
+        header::after {
+            content: "";
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: linear-gradient(to right, transparent, var(--primary), transparent);
+            animation: scan 3s infinite linear;
+        }
+        
+        @keyframes scan {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
         }
         
         .logo {
@@ -55,22 +80,23 @@
         }
         
         .logo-icon {
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            border-radius: 8px;
+            width: 50px;
+            height: 50px;
+            background: var(--gradient-1);
+            border-radius: 10px;
             display: flex;
             align-items: center;
             justify-content: center;
             position: relative;
             overflow: hidden;
+            box-shadow: 0 0 20px rgba(0, 255, 157, 0.3);
         }
         
         .logo-icon::before {
             content: "";
             position: absolute;
-            width: 20px;
-            height: 20px;
+            width: 25px;
+            height: 25px;
             border: 2px solid var(--dark);
             border-radius: 4px;
         }
@@ -78,21 +104,22 @@
         .logo-icon::after {
             content: "";
             position: absolute;
-            width: 8px;
-            height: 8px;
+            width: 10px;
+            height: 10px;
             background: var(--dark);
             border-radius: 50%;
-            bottom: 6px;
-            right: 6px;
+            bottom: 8px;
+            right: 8px;
         }
         
         .logo h1 {
-            font-size: 24px;
-            background: linear-gradient(to right, var(--primary), var(--secondary));
+            font-size: 28px;
+            background: var(--gradient-1);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
             font-weight: 700;
+            text-shadow: 0 0 15px rgba(0, 255, 157, 0.3);
         }
         
         /* Login Page Styles */
@@ -104,15 +131,16 @@
         }
         
         .login-box {
-            background: rgba(10, 10, 26, 0.8);
-            border: 1px solid rgba(0, 255, 157, 0.2);
-            border-radius: 12px;
-            padding: 40px;
+            background: rgba(10, 10, 26, 0.9);
+            border: 1px solid rgba(0, 255, 157, 0.3);
+            border-radius: 15px;
+            padding: 50px;
             width: 100%;
-            max-width: 450px;
-            box-shadow: 0 0 30px rgba(0, 255, 157, 0.1);
+            max-width: 500px;
+            box-shadow: 0 0 40px rgba(0, 255, 157, 0.2);
             position: relative;
             overflow: hidden;
+            backdrop-filter: blur(10px);
         }
         
         .login-box::before {
@@ -134,33 +162,35 @@
         
         .login-title {
             text-align: center;
-            margin-bottom: 30px;
-            font-size: 28px;
-            background: linear-gradient(to right, var(--primary), var(--secondary));
+            margin-bottom: 40px;
+            font-size: 32px;
+            background: var(--gradient-1);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
             position: relative;
+            text-shadow: 0 0 15px rgba(0, 255, 157, 0.3);
         }
         
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 25px;
             position: relative;
         }
         
         .form-group label {
             display: block;
-            margin-bottom: 8px;
-            font-size: 14px;
-            color: var(--light);
+            margin-bottom: 10px;
+            font-size: 16px;
+            color: var(--primary);
+            font-weight: 600;
         }
         
         .form-control {
             width: 100%;
-            padding: 12px 15px;
+            padding: 15px 20px;
             background: rgba(5, 5, 16, 0.7);
             border: 1px solid rgba(0, 255, 157, 0.3);
-            border-radius: 6px;
+            border-radius: 8px;
             color: var(--light);
             font-size: 16px;
             transition: all 0.3s ease;
@@ -169,27 +199,29 @@
         .form-control:focus {
             outline: none;
             border-color: var(--primary);
-            box-shadow: 0 0 10px rgba(0, 255, 157, 0.2);
+            box-shadow: 0 0 15px rgba(0, 255, 157, 0.3);
+            background: rgba(5, 5, 16, 0.9);
         }
         
         .btn {
             display: inline-block;
-            padding: 12px 24px;
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            padding: 15px 30px;
+            background: var(--gradient-1);
             color: var(--dark);
             border: none;
-            border-radius: 6px;
-            font-size: 16px;
+            border-radius: 8px;
+            font-size: 18px;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
             text-align: center;
             width: 100%;
+            box-shadow: 0 5px 15px rgba(0, 255, 157, 0.2);
         }
         
         .btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 255, 157, 0.3);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 255, 157, 0.4);
         }
         
         /* Dashboard Styles */
@@ -202,94 +234,123 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 30px;
-            padding: 20px;
-            background: rgba(10, 10, 26, 0.6);
-            border-radius: 10px;
+            padding: 25px;
+            background: rgba(10, 10, 26, 0.7);
+            border-radius: 15px;
             border: 1px solid rgba(0, 255, 157, 0.2);
+            backdrop-filter: blur(10px);
         }
         
         .user-details h2 {
-            font-size: 22px;
-            margin-bottom: 5px;
+            font-size: 24px;
+            margin-bottom: 8px;
             color: var(--primary);
+            text-shadow: 0 0 10px rgba(0, 255, 157, 0.3);
         }
         
         .user-details p {
-            color: var(--light);
-            opacity: 0.8;
+            color: var(--secondary);
+            opacity: 0.9;
+            font-size: 16px;
         }
         
         .logout-btn {
             background: rgba(255, 0, 110, 0.2);
             color: var(--danger);
             border: 1px solid var(--danger);
-            padding: 8px 16px;
-            border-radius: 6px;
+            padding: 10px 20px;
+            border-radius: 8px;
             cursor: pointer;
             transition: all 0.3s ease;
+            font-weight: 600;
         }
         
         .logout-btn:hover {
             background: var(--danger);
             color: var(--light);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 0, 110, 0.3);
         }
         
         .time-tracker {
-            background: rgba(10, 10, 26, 0.6);
-            border-radius: 10px;
-            padding: 30px;
+            background: rgba(10, 10, 26, 0.7);
+            border-radius: 15px;
+            padding: 35px;
             border: 1px solid rgba(0, 255, 157, 0.2);
             margin-bottom: 30px;
+            backdrop-filter: blur(10px);
         }
         
         .tracker-title {
-            font-size: 20px;
-            margin-bottom: 20px;
+            font-size: 24px;
+            margin-bottom: 25px;
             color: var(--primary);
             text-align: center;
+            text-shadow: 0 0 10px rgba(0, 255, 157, 0.3);
         }
         
         .time-display {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 30px;
+            margin-bottom: 35px;
         }
         
         .time-box {
             text-align: center;
             flex: 1;
-            padding: 20px;
+            padding: 25px;
             background: rgba(5, 5, 16, 0.7);
-            border-radius: 8px;
+            border-radius: 12px;
             margin: 0 10px;
             border: 1px solid rgba(0, 255, 157, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .time-box:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 255, 157, 0.1);
+            border-color: rgba(0, 255, 157, 0.3);
         }
         
         .time-label {
-            font-size: 14px;
-            color: var(--light);
-            opacity: 0.7;
-            margin-bottom: 10px;
+            font-size: 16px;
+            color: var(--secondary);
+            opacity: 0.9;
+            margin-bottom: 15px;
+            font-weight: 600;
         }
         
         .time-value {
-            font-size: 24px;
+            font-size: 28px;
             font-weight: 700;
             color: var(--primary);
+            text-shadow: 0 0 10px rgba(0, 255, 157, 0.3);
         }
         
         .action-buttons {
             display: flex;
             justify-content: center;
-            gap: 20px;
+            gap: 25px;
         }
         
         .btn-start {
-            background: linear-gradient(135deg, var(--primary), #00cc84);
+            background: var(--gradient-1);
         }
         
         .btn-end {
-            background: linear-gradient(135deg, var(--secondary), #0099cc);
+            background: var(--gradient-3);
+        }
+        
+        .btn-reset {
+            background: var(--gradient-2);
+            padding: 8px 16px;
+            font-size: 14px;
+            border-radius: 6px;
+            box-shadow: 0 3px 10px rgba(255, 0, 110, 0.2);
+        }
+        
+        .btn-reset:hover {
+            box-shadow: 0 5px 15px rgba(255, 0, 110, 0.4);
         }
         
         .btn:disabled {
@@ -305,16 +366,51 @@
         
         /* Activity Log */
         .activity-log {
-            background: rgba(10, 10, 26, 0.6);
-            border-radius: 10px;
-            padding: 30px;
+            background: rgba(10, 10, 26, 0.7);
+            border-radius: 15px;
+            padding: 35px;
             border: 1px solid rgba(0, 255, 157, 0.2);
+            backdrop-filter: blur(10px);
+        }
+        
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
         }
         
         .log-title {
-            font-size: 20px;
-            margin-bottom: 20px;
+            font-size: 24px;
             color: var(--primary);
+            text-shadow: 0 0 10px rgba(0, 255, 157, 0.3);
+        }
+        
+        .filter-container {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .filter-label {
+            color: var(--secondary);
+            font-weight: 600;
+        }
+        
+        .filter-select {
+            padding: 8px 15px;
+            background: rgba(5, 5, 16, 0.7);
+            border: 1px solid rgba(0, 255, 157, 0.3);
+            border-radius: 6px;
+            color: var(--light);
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+        
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 10px rgba(0, 255, 157, 0.2);
         }
         
         .log-table {
@@ -323,7 +419,7 @@
         }
         
         .log-table th, .log-table td {
-            padding: 12px 15px;
+            padding: 15px 20px;
             text-align: left;
             border-bottom: 1px solid rgba(0, 255, 157, 0.1);
         }
@@ -331,6 +427,12 @@
         .log-table th {
             color: var(--primary);
             font-weight: 600;
+            font-size: 16px;
+            text-shadow: 0 0 5px rgba(0, 255, 157, 0.3);
+        }
+        
+        .log-table tr {
+            transition: all 0.3s ease;
         }
         
         .log-table tr:hover {
@@ -339,20 +441,30 @@
         
         /* Status Indicators */
         .status-active {
-            color: var(--primary);
+            color: var(--success);
+            font-weight: 600;
         }
         
-        .status-inactive {
-            color: var(--light);
-            opacity: 0.5;
+        .status-late {
+            color: var(--danger);
+            font-weight: 600;
+        }
+        
+        .duration-late {
+            color: var(--danger);
+        }
+        
+        .duration-normal {
+            color: var(--success);
         }
         
         /* Alert Styles */
         .alert {
-            padding: 12px 20px;
-            border-radius: 6px;
-            margin-bottom: 20px;
+            padding: 15px 25px;
+            border-radius: 8px;
+            margin-bottom: 25px;
             display: none;
+            font-weight: 500;
         }
         
         .alert-success {
@@ -377,17 +489,17 @@
         .loading {
             display: none;
             text-align: center;
-            padding: 20px;
+            padding: 30px;
         }
         
         .spinner {
-            width: 40px;
-            height: 40px;
+            width: 50px;
+            height: 50px;
             border: 4px solid rgba(0, 255, 157, 0.2);
             border-left: 4px solid var(--primary);
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin: 0 auto 10px;
+            margin: 0 auto 15px;
         }
         
         @keyframes spin {
@@ -397,37 +509,42 @@
         
         /* Exit Limit Info */
         .exit-limit-info {
-            background: rgba(10, 10, 26, 0.6);
-            border-radius: 10px;
-            padding: 20px;
+            background: rgba(10, 10, 26, 0.7);
+            border-radius: 15px;
+            padding: 25px;
             border: 1px solid rgba(0, 255, 157, 0.2);
             margin-bottom: 30px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            backdrop-filter: blur(10px);
         }
         
         .limit-text {
-            font-size: 16px;
-            color: var(--light);
+            font-size: 18px;
+            color: var(--secondary);
+            font-weight: 600;
         }
         
         .limit-value {
-            font-size: 18px;
+            font-size: 22px;
             font-weight: 700;
             color: var(--primary);
+            text-shadow: 0 0 10px rgba(0, 255, 157, 0.3);
         }
         
         /* Sync Status */
         .sync-status {
             position: fixed;
-            bottom: 20px;
-            right: 20px;
-            padding: 10px 15px;
-            border-radius: 6px;
-            font-size: 14px;
+            bottom: 30px;
+            right: 30px;
+            padding: 15px 25px;
+            border-radius: 8px;
+            font-size: 16px;
             display: none;
             z-index: 1000;
+            font-weight: 600;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
         }
         
         .sync-success {
@@ -446,7 +563,7 @@
         @media (max-width: 768px) {
             .time-display {
                 flex-direction: column;
-                gap: 15px;
+                gap: 20px;
             }
             
             .time-box {
@@ -459,14 +576,25 @@
             
             .user-info {
                 flex-direction: column;
-                gap: 15px;
+                gap: 20px;
                 text-align: center;
             }
             
             .exit-limit-info {
                 flex-direction: column;
-                gap: 10px;
+                gap: 15px;
                 text-align: center;
+            }
+            
+            .log-header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: flex-start;
+            }
+            
+            .filter-container {
+                width: 100%;
+                justify-content: space-between;
             }
         }
     </style>
@@ -547,7 +675,20 @@
             </div>
             
             <div class="activity-log">
-                <h3 class="log-title">Recent Exit Activities</h3>
+                <div class="log-header">
+                    <h3 class="log-title">Recent Exit Activities</h3>
+                    <div class="filter-container">
+                        <label class="filter-label">Filter:</label>
+                        <select id="filter-select" class="filter-select">
+                            <option value="all">All Records</option>
+                            <option value="today">Today</option>
+                            <option value="week">This Week</option>
+                            <option value="month">This Month</option>
+                            <option value="late">Late (>15 min)</option>
+                            <option value="ontime">On Time (≤15 min)</option>
+                        </select>
+                    </div>
+                </div>
                 <div class="loading">
                     <div class="spinner"></div>
                     <p>Loading activity data...</p>
@@ -560,6 +701,7 @@
                             <th>End Time</th>
                             <th>Duration</th>
                             <th>Status</th>
+                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody id="activity-body">
@@ -590,6 +732,7 @@
         let timerInterval = null;
         let positionLimits = {};
         let todayActivities = [];
+        let allActivities = [];
         let pendingSyncData = [];
         
         // DOM Elements
@@ -610,12 +753,14 @@
         const loadingElement = document.querySelector('.loading');
         const remainingExitsElement = document.getElementById('remaining-exits');
         const syncStatusElement = document.getElementById('sync-status');
+        const filterSelect = document.getElementById('filter-select');
         
         // Event Listeners
         loginForm.addEventListener('submit', handleLogin);
         logoutBtn.addEventListener('click', handleLogout);
         startBtn.addEventListener('click', handleStartTime);
         endBtn.addEventListener('click', handleEndTime);
+        filterSelect.addEventListener('change', filterActivities);
         
         // Cek status login saat halaman dimuat
         document.addEventListener('DOMContentLoaded', () => {
@@ -750,16 +895,23 @@
             endTimeDisplay.textContent = formatTime(endTime);
             durationDisplay.textContent = formatDuration(duration);
             
+            // Cek apakah durasi melebihi 15 menit
+            const isLate = duration > 15 * 60; // 15 menit dalam detik
+            
             // Reset tombol
             startBtn.disabled = false;
             endBtn.disabled = true;
             
             try {
                 // Simpan data ke Google Sheets
-                await saveActivityData(startTime, endTime, duration);
+                await saveActivityData(startTime, endTime, duration, isLate);
                 
                 // Tampilkan pesan sukses
-                showTrackerAlert('Exit time recorded successfully', 'success');
+                if (isLate) {
+                    showTrackerAlert('Exit time recorded. You were late (>15 min)', 'warning');
+                } else {
+                    showTrackerAlert('Exit time recorded successfully', 'success');
+                }
                 
                 // Muat ulang data aktivitas
                 loadActivityData();
@@ -778,7 +930,19 @@
             
             const now = new Date();
             const duration = Math.floor((now - startTime) / 1000); // dalam detik
+            
+            // Cek apakah durasi melebihi 15 menit
+            const isLate = duration > 15 * 60; // 15 menit dalam detik
+            
+            // Update tampilan dengan warna yang sesuai
             durationDisplay.textContent = formatDuration(duration);
+            if (isLate) {
+                durationDisplay.classList.add('duration-late');
+                durationDisplay.classList.remove('duration-normal');
+            } else {
+                durationDisplay.classList.add('duration-normal');
+                durationDisplay.classList.remove('duration-late');
+            }
         }
         
         // Fungsi untuk mereset timer
@@ -788,6 +952,7 @@
             startTimeDisplay.textContent = '--:--:--';
             endTimeDisplay.textContent = '--:--:--';
             durationDisplay.textContent = '--:--:--';
+            durationDisplay.classList.remove('duration-late', 'duration-normal');
             startBtn.disabled = false;
             endBtn.disabled = true;
         }
@@ -829,7 +994,7 @@
                 const localActivities = JSON.parse(localStorage.getItem('activities') || '[]');
                 
                 // Gabungkan data
-                const allActivities = [...activityData, ...localActivities];
+                allActivities = [...activityData, ...localActivities];
                 
                 // Filter data untuk staff yang sedang login
                 todayActivities = allActivities.filter(activity => 
@@ -837,20 +1002,8 @@
                     isToday(activity.date)
                 );
                 
-                // Tampilkan data
-                todayActivities.forEach(activity => {
-                    const row = document.createElement('tr');
-                    
-                    row.innerHTML = `
-                        <td>${activity.date}</td>
-                        <td>${activity.start}</td>
-                        <td>${activity.end}</td>
-                        <td>${activity.duration}</td>
-                        <td class="status-active">Completed</td>
-                    `;
-                    
-                    activityBody.appendChild(row);
-                });
+                // Tampilkan data dengan filter yang dipilih
+                displayFilteredActivities();
                 
                 // Update tampilan batas keluar
                 updateExitLimitDisplay();
@@ -861,8 +1014,105 @@
                 loadingElement.style.display = 'none';
                 
                 const row = document.createElement('tr');
-                row.innerHTML = `<td colspan="5" style="text-align: center; color: var(--danger);">Failed to load activity data</td>`;
+                row.innerHTML = `<td colspan="6" style="text-align: center; color: var(--danger);">Failed to load activity data</td>`;
                 activityBody.appendChild(row);
+            }
+        }
+        
+        // Fungsi untuk menampilkan aktivitas yang difilter
+        function displayFilteredActivities() {
+            activityBody.innerHTML = '';
+            
+            const filterValue = filterSelect.value;
+            let filteredActivities = [];
+            
+            // Filter berdasarkan pilihan
+            switch(filterValue) {
+                case 'all':
+                    filteredActivities = allActivities.filter(activity => activity.name === currentStaff.name);
+                    break;
+                case 'today':
+                    filteredActivities = allActivities.filter(activity => 
+                        activity.name === currentStaff.name && 
+                        isToday(activity.date)
+                    );
+                    break;
+                case 'week':
+                    filteredActivities = allActivities.filter(activity => 
+                        activity.name === currentStaff.name && 
+                        isThisWeek(activity.date)
+                    );
+                    break;
+                case 'month':
+                    filteredActivities = allActivities.filter(activity => 
+                        activity.name === currentStaff.name && 
+                        isThisMonth(activity.date)
+                    );
+                    break;
+                case 'late':
+                    filteredActivities = allActivities.filter(activity => 
+                        activity.name === currentStaff.name && 
+                        activity.isLate
+                    );
+                    break;
+                case 'ontime':
+                    filteredActivities = allActivities.filter(activity => 
+                        activity.name === currentStaff.name && 
+                        !activity.isLate
+                    );
+                    break;
+            }
+            
+            // Tampilkan data
+            filteredActivities.forEach((activity, index) => {
+                const row = document.createElement('tr');
+                
+                // Cek apakah durasi melebihi 15 menit
+                const durationInSeconds = parseDurationToSeconds(activity.duration);
+                const isLate = durationInSeconds > 15 * 60;
+                
+                row.innerHTML = `
+                    <td>${activity.date}</td>
+                    <td>${activity.start}</td>
+                    <td>${activity.end}</td>
+                    <td class="${isLate ? 'duration-late' : 'duration-normal'}">${activity.duration}</td>
+                    <td class="${isLate ? 'status-late' : 'status-active'}">${isLate ? 'Telat' : 'Aman'}</td>
+                    <td><button class="btn btn-reset" data-index="${index}">Reset</button></td>
+                `;
+                
+                activityBody.appendChild(row);
+            });
+            
+            // Tambahkan event listener untuk tombol reset
+            document.querySelectorAll('.btn-reset').forEach(btn => {
+                btn.addEventListener('click', handleResetActivity);
+            });
+        }
+        
+        // Fungsi untuk filter aktivitas
+        function filterActivities() {
+            displayFilteredActivities();
+        }
+        
+        // Fungsi untuk menangani reset aktivitas
+        function handleResetActivity(e) {
+            const index = e.target.getAttribute('data-index');
+            const activity = allActivities[index];
+            
+            if (confirm(`Are you sure you want to reset this activity from ${activity.date}?`)) {
+                // Hapus dari array allActivities
+                allActivities.splice(index, 1);
+                
+                // Simpan perubahan ke localStorage
+                localStorage.setItem('activities', JSON.stringify(
+                    allActivities.filter(a => !a.fromSheet)
+                ));
+                
+                // Tampilkan pesan sukses
+                showSyncStatus('Activity reset successfully', 'success');
+                
+                // Muat ulang data
+                loadActivityData();
             }
         }
         
@@ -933,10 +1183,38 @@
             return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
         }
         
+        // Fungsi utilitas untuk mengkonversi durasi string ke detik
+        function parseDurationToSeconds(durationStr) {
+            const parts = durationStr.split(':');
+            const hours = parseInt(parts[0]) || 0;
+            const minutes = parseInt(parts[1]) || 0;
+            const seconds = parseInt(parts[2]) || 0;
+            
+            return hours * 3600 + minutes * 60 + seconds;
+        }
+        
         // Fungsi utilitas untuk memeriksa apakah tanggal adalah hari ini
         function isToday(dateString) {
             const today = new Date().toISOString().split('T')[0];
             return dateString === today;
+        }
+        
+        // Fungsi utilitas untuk memeriksa apakah tanggal minggu ini
+        function isThisWeek(dateString) {
+            const date = new Date(dateString);
+            const today = new Date();
+            const firstDayOfWeek = new Date(today.setDate(today.getDate() - today.getDay()));
+            const lastDayOfWeek = new Date(today.setDate(today.getDate() - today.getDay() + 6));
+            
+            return date >= firstDayOfWeek && date <= lastDayOfWeek;
+        }
+        
+        // Fungsi utilitas untuk memeriksa apakah tanggal bulan ini
+        function isThisMonth(dateString) {
+            const date = new Date(dateString);
+            const today = new Date();
+            
+            return date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
         }
         
         // Fungsi untuk mengambil data staff dari Google Sheets
@@ -1012,12 +1290,15 @@
                         const values = parseCSVLine(line);
                         
                         if (values.length >= 5) {
+                            const durationInSeconds = parseDurationToSeconds(values[4]);
                             activityData.push({
                                 date: values[0],
                                 name: values[1],
                                 start: values[2],
                                 end: values[3],
-                                duration: values[4]
+                                duration: values[4],
+                                isLate: durationInSeconds > 15 * 60,
+                                fromSheet: true
                             });
                         }
                     }
@@ -1079,15 +1360,16 @@
         }
         
         // Fungsi untuk menyimpan data aktivitas ke Google Sheets
-        async function saveActivityData(startTime, endTime, duration) {
+        async function saveActivityData(startTime, endTime, duration, isLate) {
             const activityData = {
                 date: startTime.toISOString().split('T')[0],
                 name: currentStaff.name,
                 start: formatTime(startTime),
                 end: formatTime(endTime),
                 duration: formatDuration(duration),
-                result: "Completed",
-                note: "Staff exit recorded"
+                result: isLate ? "Telat" : "Aman",
+                note: "Staff exit recorded",
+                isLate: isLate
             };
             
             // Simpan ke localStorage terlebih dahulu
