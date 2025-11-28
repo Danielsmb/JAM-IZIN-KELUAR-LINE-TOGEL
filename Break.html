@@ -367,6 +367,12 @@
             color: var(--danger);
         }
         
+        .alert-warning {
+            background: rgba(255, 189, 0, 0.1);
+            border: 1px solid var(--warning);
+            color: var(--warning);
+        }
+        
         /* Loading Animation */
         .loading {
             display: none;
@@ -389,6 +395,29 @@
             100% { transform: rotate(360deg); }
         }
         
+        /* Exit Limit Info */
+        .exit-limit-info {
+            background: rgba(10, 10, 26, 0.6);
+            border-radius: 10px;
+            padding: 20px;
+            border: 1px solid rgba(0, 255, 157, 0.2);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .limit-text {
+            font-size: 16px;
+            color: var(--light);
+        }
+        
+        .limit-value {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        
         /* Responsive Design */
         @media (max-width: 768px) {
             .time-display {
@@ -407,6 +436,12 @@
             .user-info {
                 flex-direction: column;
                 gap: 15px;
+                text-align: center;
+            }
+            
+            .exit-limit-info {
+                flex-direction: column;
+                gap: 10px;
                 text-align: center;
             }
         }
@@ -457,6 +492,11 @@
                     <p id="staff-position">Position</p>
                 </div>
                 <button id="logout-btn" class="logout-btn">Logout</button>
+            </div>
+            
+            <div class="exit-limit-info">
+                <div class="limit-text">Remaining Exit Limit Today:</div>
+                <div class="limit-value" id="remaining-exits">4/4</div>
             </div>
             
             <div class="time-tracker">
@@ -511,11 +551,14 @@
         const SPREADSHEET_ID = '1J7zVo4zh0kZISjyx15PPhDnxfqGnEdXKWYw3XHAdflM';
         const STAFF_SHEET_NAME = 'Sheet1'; // Nama sheet untuk data staff
         const ACTIVITY_SHEET_NAME = 'Sheet2'; // Nama sheet untuk data aktivitas
+        const POSITION_LIMIT_SHEET_NAME = 'Sheet3'; // Nama sheet untuk data limit per jabatan
         
         // Variabel global
         let currentStaff = null;
         let startTime = null;
         let timerInterval = null;
+        let positionLimits = {};
+        let todayActivities = [];
         
         // DOM Elements
         const loginPage = document.getElementById('login-page');
@@ -533,12 +576,41 @@
         const trackerAlert = document.getElementById('tracker-alert');
         const activityBody = document.getElementById('activity-body');
         const loadingElement = document.querySelector('.loading');
+        const remainingExitsElement = document.getElementById('remaining-exits');
         
         // Event Listeners
         loginForm.addEventListener('submit', handleLogin);
         logoutBtn.addEventListener('click', handleLogout);
         startBtn.addEventListener('click', handleStartTime);
         endBtn.addEventListener('click', handleEndTime);
+        
+        // Cek status login saat halaman dimuat
+        document.addEventListener('DOMContentLoaded', () => {
+            checkLoginStatus();
+            loadPositionLimits();
+        });
+        
+        // Fungsi untuk mengecek status login
+        function checkLoginStatus() {
+            const savedStaff = localStorage.getItem('currentStaff');
+            if (savedStaff) {
+                try {
+                    currentStaff = JSON.parse(savedStaff);
+                    staffName.textContent = currentStaff.name;
+                    staffPosition.textContent = currentStaff.position;
+                    
+                    // Sembunyikan halaman login, tampilkan dashboard
+                    loginPage.style.display = 'none';
+                    dashboard.style.display = 'block';
+                    
+                    // Muat data aktivitas
+                    loadActivityData();
+                } catch (error) {
+                    console.error('Error parsing saved staff data:', error);
+                    localStorage.removeItem('currentStaff');
+                }
+            }
+        }
         
         // Fungsi untuk menangani login
         async function handleLogin(e) {
@@ -563,6 +635,9 @@
                     staffName.textContent = staff.name;
                     staffPosition.textContent = staff.position;
                     
+                    // Simpan status login ke localStorage
+                    localStorage.setItem('currentStaff', JSON.stringify(currentStaff));
+                    
                     // Sembunyikan halaman login, tampilkan dashboard
                     loginPage.style.display = 'none';
                     dashboard.style.display = 'block';
@@ -586,6 +661,9 @@
             currentStaff = null;
             resetTimer();
             
+            // Hapus status login dari localStorage
+            localStorage.removeItem('currentStaff');
+            
             // Reset form login
             loginForm.reset();
             
@@ -599,6 +677,15 @@
         
         // Fungsi untuk memulai waktu keluar
         function handleStartTime() {
+            // Cek batas maksimal keluar
+            const todayExitCount = getTodayExitCount();
+            const maxExits = getMaxExitsForPosition(currentStaff.position);
+            
+            if (todayExitCount >= maxExits) {
+                showTrackerAlert(`You have reached your maximum exit limit for today (${maxExits} times)`, 'warning');
+                return;
+            }
+            
             startTime = new Date();
             startTimeDisplay.textContent = formatTime(startTime);
             endTimeDisplay.textContent = '--:--:--';
@@ -693,10 +780,13 @@
                 const activityData = await getActivityData();
                 
                 // Filter data untuk staff yang sedang login
-                const staffActivities = activityData.filter(activity => activity.name === currentStaff.name);
+                todayActivities = activityData.filter(activity => 
+                    activity.name === currentStaff.name && 
+                    isToday(activity.date)
+                );
                 
                 // Tampilkan data
-                staffActivities.forEach(activity => {
+                todayActivities.forEach(activity => {
                     const row = document.createElement('tr');
                     
                     row.innerHTML = `
@@ -710,6 +800,9 @@
                     activityBody.appendChild(row);
                 });
                 
+                // Update tampilan batas keluar
+                updateExitLimitDisplay();
+                
                 loadingElement.style.display = 'none';
             } catch (error) {
                 console.error('Error loading activity data:', error);
@@ -718,6 +811,55 @@
                 const row = document.createElement('tr');
                 row.innerHTML = `<td colspan="5" style="text-align: center; color: var(--danger);">Failed to load activity data</td>`;
                 activityBody.appendChild(row);
+            }
+        }
+        
+        // Fungsi untuk memuat data batas per jabatan
+        async function loadPositionLimits() {
+            try {
+                const limitsData = await getPositionLimitsData();
+                
+                // Konversi data ke objek untuk pencarian cepat
+                limitsData.forEach(item => {
+                    positionLimits[item.position] = parseInt(item.limit);
+                });
+            } catch (error) {
+                console.error('Error loading position limits:', error);
+                
+                // Gunakan nilai default jika gagal memuat
+                positionLimits = {
+                    'Security Analyst': 4,
+                    'Network Engineer': 4,
+                    'Incident Responder': 4
+                };
+            }
+        }
+        
+        // Fungsi untuk mendapatkan batas maksimal keluar untuk posisi tertentu
+        function getMaxExitsForPosition(position) {
+            // Default ke 4 jika posisi tidak ditemukan
+            return positionLimits[position] || 4;
+        }
+        
+        // Fungsi untuk menghitung jumlah keluar hari ini
+        function getTodayExitCount() {
+            return todayActivities.length;
+        }
+        
+        // Fungsi untuk memperbarui tampilan batas keluar
+        function updateExitLimitDisplay() {
+            const todayCount = getTodayExitCount();
+            const maxCount = getMaxExitsForPosition(currentStaff.position);
+            
+            remainingExitsElement.textContent = `${maxCount - todayCount}/${maxCount}`;
+            
+            // Ubah warna jika mendekati batas
+            if (todayCount >= maxCount) {
+                remainingExitsElement.style.color = 'var(--danger)';
+            } else if (todayCount >= maxCount - 1) {
+                remainingExitsElement.style.color = 'var(--warning)';
+            } else {
+                remainingExitsElement.style.color = 'var(--primary)';
             }
         }
         
@@ -737,6 +879,12 @@
             const secs = seconds % 60;
             
             return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        // Fungsi utilitas untuk memeriksa apakah tanggal adalah hari ini
+        function isToday(dateString) {
+            const today = new Date().toISOString().split('T')[0];
+            return dateString === today;
         }
         
         // Fungsi untuk mengambil data staff dari Google Sheets
@@ -836,6 +984,52 @@
             }
         }
         
+        // Fungsi untuk mengambil data batas per jabatan dari Google Sheets
+        async function getPositionLimitsData() {
+            try {
+                // Gunakan CSV export untuk mengambil data dari Google Sheets
+                const csvUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&gid=1500109710`;
+                const response = await fetch(csvUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const csvText = await response.text();
+                
+                // Parse CSV
+                const lines = csvText.split('\n');
+                const limitsData = [];
+                
+                // Skip header row
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (line) {
+                        // Handle CSV dengan kemungkinan koma dalam nilai
+                        const values = parseCSVLine(line);
+                        
+                        if (values.length >= 2) {
+                            limitsData.push({
+                                position: values[0],
+                                limit: values[1]
+                            });
+                        }
+                    }
+                }
+                
+                return limitsData;
+            } catch (error) {
+                console.error('Error fetching position limits data:', error);
+                
+                // Fallback ke data simulasi jika gagal
+                return [
+                    { position: "Security Analyst", limit: "4" },
+                    { position: "Network Engineer", limit: "3" },
+                    { position: "Incident Responder", limit: "5" }
+                ];
+            }
+        }
+        
         // Fungsi untuk menyimpan data aktivitas ke Google Sheets
         async function saveActivityData(startTime, endTime, duration) {
             try {
@@ -849,24 +1043,59 @@
                     note: "Staff exit recorded"
                 };
                 
-                // Karena kita tidak dapat langsung menulis ke Google Sheets tanpa autentikasi,
-                // kita akan menyimpan data ke localStorage dan menampilkannya di tabel
+                // Gunakan Google Apps Script Web App untuk menulis data ke Google Sheets
+                // URL ini harus diganti dengan URL Web App Anda
+                const webAppUrl = 'https://script.google.com/macros/s/AKfycbzV-5N7B3l7j8k9oP1qR2sT3uV4wX5yZ6a7b8c9d0e1f2g3h4i5j6k7l8m9n/exec';
                 
-                // Ambil data aktivitas yang ada dari localStorage
-                let activities = JSON.parse(localStorage.getItem('activities') || '[]');
-                
-                // Tambahkan aktivitas baru
-                activities.push(activityData);
-                
-                // Simpan kembali ke localStorage
-                localStorage.setItem('activities', JSON.stringify(activities));
+                // Kirim data ke Web App
+                const response = await fetch(webAppUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        spreadsheetId: SPREADSHEET_ID,
+                        sheetName: ACTIVITY_SHEET_NAME,
+                        data: [
+                            activityData.date,
+                            activityData.name,
+                            activityData.start,
+                            activityData.end,
+                            activityData.duration,
+                            activityData.result,
+                            activityData.note
+                        ]
+                    }),
+                    mode: 'no-cors' // Diperlukan karena CORS policy
+                });
                 
                 console.log('Activity data saved:', activityData);
+                
+                // Simpan juga ke localStorage sebagai backup
+                let activities = JSON.parse(localStorage.getItem('activities') || '[]');
+                activities.push(activityData);
+                localStorage.setItem('activities', JSON.stringify(activities));
                 
                 // Simulasi delay jaringan
                 return new Promise(resolve => setTimeout(resolve, 1000));
             } catch (error) {
                 console.error('Error saving activity data:', error);
+                
+                // Simpan ke localStorage sebagai fallback
+                const activityData = {
+                    date: startTime.toISOString().split('T')[0],
+                    name: currentStaff.name,
+                    start: formatTime(startTime),
+                    end: formatTime(endTime),
+                    duration: formatDuration(duration),
+                    result: "Completed",
+                    note: "Staff exit recorded"
+                };
+                
+                let activities = JSON.parse(localStorage.getItem('activities') || '[]');
+                activities.push(activityData);
+                localStorage.setItem('activities', JSON.stringify(activities));
+                
                 throw error;
             }
         }
