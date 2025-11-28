@@ -378,6 +378,8 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 25px;
+            flex-wrap: wrap;
+            gap: 15px;
         }
         
         .log-title {
@@ -390,14 +392,22 @@
             display: flex;
             gap: 15px;
             align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .filter-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         
         .filter-label {
             color: var(--secondary);
             font-weight: 600;
+            white-space: nowrap;
         }
         
-        .filter-select {
+        .filter-select, .date-input {
             padding: 8px 15px;
             background: rgba(5, 5, 16, 0.7);
             border: 1px solid rgba(0, 255, 157, 0.3);
@@ -407,7 +417,7 @@
             transition: all 0.3s ease;
         }
         
-        .filter-select:focus {
+        .filter-select:focus, .date-input:focus {
             outline: none;
             border-color: var(--primary);
             box-shadow: 0 0 10px rgba(0, 255, 157, 0.2);
@@ -596,6 +606,15 @@
                 width: 100%;
                 justify-content: space-between;
             }
+            
+            .filter-group {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .date-input {
+                width: 100%;
+            }
         }
     </style>
 </head>
@@ -678,15 +697,24 @@
                 <div class="log-header">
                     <h3 class="log-title">Recent Exit Activities</h3>
                     <div class="filter-container">
-                        <label class="filter-label">Filter:</label>
-                        <select id="filter-select" class="filter-select">
-                            <option value="all">All Records</option>
-                            <option value="today">Today</option>
-                            <option value="week">This Week</option>
-                            <option value="month">This Month</option>
-                            <option value="late">Late (>15 min)</option>
-                            <option value="ontime">On Time (≤15 min)</option>
-                        </select>
+                        <div class="filter-group">
+                            <label class="filter-label">Filter:</label>
+                            <select id="filter-select" class="filter-select">
+                                <option value="all">All Records</option>
+                                <option value="today">Today</option>
+                                <option value="week">This Week</option>
+                                <option value="month">This Month</option>
+                                <option value="daterange">Date Range</option>
+                                <option value="late">Late (>15 min)</option>
+                                <option value="ontime">On Time (≤15 min)</option>
+                            </select>
+                        </div>
+                        <div class="filter-group" id="date-range-group" style="display: none;">
+                            <label class="filter-label">From:</label>
+                            <input type="date" id="start-date" class="date-input">
+                            <label class="filter-label">To:</label>
+                            <input type="date" id="end-date" class="date-input">
+                        </div>
                     </div>
                 </div>
                 <div class="loading">
@@ -754,19 +782,29 @@
         const remainingExitsElement = document.getElementById('remaining-exits');
         const syncStatusElement = document.getElementById('sync-status');
         const filterSelect = document.getElementById('filter-select');
+        const dateRangeGroup = document.getElementById('date-range-group');
+        const startDateInput = document.getElementById('start-date');
+        const endDateInput = document.getElementById('end-date');
         
         // Event Listeners
         loginForm.addEventListener('submit', handleLogin);
         logoutBtn.addEventListener('click', handleLogout);
         startBtn.addEventListener('click', handleStartTime);
         endBtn.addEventListener('click', handleEndTime);
-        filterSelect.addEventListener('change', filterActivities);
+        filterSelect.addEventListener('change', handleFilterChange);
+        startDateInput.addEventListener('change', filterActivities);
+        endDateInput.addEventListener('change', filterActivities);
         
         // Cek status login saat halaman dimuat
         document.addEventListener('DOMContentLoaded', () => {
             checkLoginStatus();
             loadPositionLimits();
             syncPendingData(); // Sinkronkan data yang tertunda
+            
+            // Set today's date as default for date range filter
+            const today = new Date().toISOString().split('T')[0];
+            startDateInput.value = today;
+            endDateInput.value = today;
         });
         
         // Fungsi untuk mengecek status login
@@ -1049,6 +1087,17 @@
                         isThisMonth(activity.date)
                     );
                     break;
+                case 'daterange':
+                    const startDate = new Date(startDateInput.value);
+                    const endDate = new Date(endDateInput.value);
+                    endDate.setHours(23, 59, 59, 999); // Include the entire end date
+                    
+                    filteredActivities = allActivities.filter(activity => {
+                        if (activity.name !== currentStaff.name) return false;
+                        const activityDate = new Date(activity.date);
+                        return activityDate >= startDate && activityDate <= endDate;
+                    });
+                    break;
                 case 'late':
                     filteredActivities = allActivities.filter(activity => 
                         activity.name === currentStaff.name && 
@@ -1087,6 +1136,21 @@
             document.querySelectorAll('.btn-reset').forEach(btn => {
                 btn.addEventListener('click', handleResetActivity);
             });
+        }
+        
+        // Fungsi untuk menangani perubahan filter
+        function handleFilterChange() {
+            const filterValue = filterSelect.value;
+            
+            // Tampilkan atau sembunyikan date range group
+            if (filterValue === 'daterange') {
+                dateRangeGroup.style.display = 'flex';
+            } else {
+                dateRangeGroup.style.display = 'none';
+            }
+            
+            // Filter aktivitas
+            filterActivities();
         }
         
         // Fungsi untuk filter aktivitas
@@ -1269,7 +1333,7 @@
         async function getActivityData() {
             try {
                 // Gunakan CSV export untuk mengambil data dari Google Sheets
-                const csvUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${ACTIVITY_SHEET_NAME}`;
+                const csvUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&gid=19279517`;
                 const response = await fetch(csvUrl);
                 
                 if (!response.ok) {
