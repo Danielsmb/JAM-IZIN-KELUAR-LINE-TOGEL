@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CyberSec Staff Portal</title>
+    <style>
+        :root {
+            --primary: #00ff9d;
+            --secondary: #00b8ff;
+            --dark: #0a0a1a;
+            --darker: #050510;
+            --light: #e0e0ff;
+            --danger: #ff006e;
+            --warning: #ffbd00;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: var(--darker);
+            color: var(--light);
+            min-height: 100vh;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 10% 20%, rgba(0, 255, 157, 0.05) 0%, transparent 20%),
+                radial-gradient(circle at 90% 80%, rgba(0, 184, 255, 0.05) 0%, transparent 20%);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        /* Header Styles */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid rgba(0, 255, 157, 0.2);
+            margin-bottom: 30px;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .logo-icon::before {
+            content: "";
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--dark);
+            border-radius: 4px;
+        }
+        
+        .logo-icon::after {
+            content: "";
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: var(--dark);
+            border-radius: 50%;
+            bottom: 6px;
+            right: 6px;
+        }
+        
+        .logo h1 {
+            font-size: 24px;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            font-weight: 700;
+        }
+        
+        /* Login Page Styles */
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 80vh;
+        }
+        
+        .login-box {
+            background: rgba(10, 10, 26, 0.8);
+            border: 1px solid rgba(0, 255, 157, 0.2);
+            border-radius: 12px;
+            padding: 40px;
+            width: 100%;
+            max-width: 450px;
+            box-shadow: 0 0 30px rgba(0, 255, 157, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .login-box::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, rgba(0, 255, 157, 0.1), transparent);
+            transform: rotate(45deg);
+            animation: shine 8s infinite linear;
+        }
+        
+        @keyframes shine {
+            0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+            100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+        }
+        
+        .login-title {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+            background: linear-gradient(to right, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            position: relative;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: var(--light);
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 12px 15px;
+            background: rgba(5, 5, 16, 0.7);
+            border: 1px solid rgba(0, 255, 157, 0.3);
+            border-radius: 6px;
+            color: var(--light);
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 10px rgba(0, 255, 157, 0.2);
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: var(--dark);
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+            width: 100%;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 255, 157, 0.3);
+        }
+        
+        /* Dashboard Styles */
+        .dashboard {
+            display: none;
+        }
+        
+        .user-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: rgba(10, 10, 26, 0.6);
+            border-radius: 10px;
+            border: 1px solid rgba(0, 255, 157, 0.2);
+        }
+        
+        .user-details h2 {
+            font-size: 22px;
+            margin-bottom: 5px;
+            color: var(--primary);
+        }
+        
+        .user-details p {
+            color: var(--light);
+            opacity: 0.8;
+        }
+        
+        .logout-btn {
+            background: rgba(255, 0, 110, 0.2);
+            color: var(--danger);
+            border: 1px solid var(--danger);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .logout-btn:hover {
+            background: var(--danger);
+            color: var(--light);
+        }
+        
+        .time-tracker {
+            background: rgba(10, 10, 26, 0.6);
+            border-radius: 10px;
+            padding: 30px;
+            border: 1px solid rgba(0, 255, 157, 0.2);
+            margin-bottom: 30px;
+        }
+        
+        .tracker-title {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: var(--primary);
+            text-align: center;
+        }
+        
+        .time-display {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 30px;
+        }
+        
+        .time-box {
+            text-align: center;
+            flex: 1;
+            padding: 20px;
+            background: rgba(5, 5, 16, 0.7);
+            border-radius: 8px;
+            margin: 0 10px;
+            border: 1px solid rgba(0, 255, 157, 0.1);
+        }
+        
+        .time-label {
+            font-size: 14px;
+            color: var(--light);
+            opacity: 0.7;
+            margin-bottom: 10px;
+        }
+        
+        .time-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        
+        .action-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        
+        .btn-start {
+            background: linear-gradient(135deg, var(--primary), #00cc84);
+        }
+        
+        .btn-end {
+            background: linear-gradient(135deg, var(--secondary), #0099cc);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn:disabled:hover {
+            transform: none;
+            box-shadow: none;
+        }
+        
+        /* Activity Log */
+        .activity-log {
+            background: rgba(10, 10, 26, 0.6);
+            border-radius: 10px;
+            padding: 30px;
+            border: 1px solid rgba(0, 255, 157, 0.2);
+        }
+        
+        .log-title {
+            font-size: 20px;
+            margin-bottom: 20px;
+            color: var(--primary);
+        }
+        
+        .log-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .log-table th, .log-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid rgba(0, 255, 157, 0.1);
+        }
+        
+        .log-table th {
+            color: var(--primary);
+            font-weight: 600;
+        }
+        
+        .log-table tr:hover {
+            background: rgba(0, 255, 157, 0.05);
+        }
+        
+        /* Status Indicators */
+        .status-active {
+            color: var(--primary);
+        }
+        
+        .status-inactive {
+            color: var(--light);
+            opacity: 0.5;
+        }
+        
+        /* Alert Styles */
+        .alert {
+            padding: 12px 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .alert-success {
+            background: rgba(0, 255, 157, 0.1);
+            border: 1px solid var(--primary);
+            color: var(--primary);
+        }
+        
+        .alert-error {
+            background: rgba(255, 0, 110, 0.1);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+        }
+        
+        /* Loading Animation */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid rgba(0, 255, 157, 0.2);
+            border-left: 4px solid var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .time-display {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .time-box {
+                margin: 0;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .user-info {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Login Page -->
+        <div id="login-page">
+            <header>
+                <div class="logo">
+                    <div class="logo-icon"></div>
+                    <h1>CyberSec Staff Portal</h1>
+                </div>
+            </header>
+            
+            <div class="login-container">
+                <div class="login-box">
+                    <h2 class="login-title">Staff Authentication</h2>
+                    <div id="login-alert" class="alert alert-error"></div>
+                    <form id="login-form">
+                        <div class="form-group">
+                            <label for="staff-id">Staff ID</label>
+                            <input type="text" id="staff-id" class="form-control" placeholder="Enter your Staff ID" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="password">Password</label>
+                            <input type="password" id="password" class="form-control" placeholder="Enter your password" required>
+                        </div>
+                        <button type="submit" class="btn">Login to System</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Dashboard -->
+        <div id="dashboard" class="dashboard">
+            <header>
+                <div class="logo">
+                    <div class="logo-icon"></div>
+                    <h1>CyberSec Staff Portal</h1>
+                </div>
+            </header>
+            
+            <div class="user-info">
+                <div class="user-details">
+                    <h2 id="staff-name">Staff Name</h2>
+                    <p id="staff-position">Position</p>
+                </div>
+                <button id="logout-btn" class="logout-btn">Logout</button>
+            </div>
+            
+            <div class="time-tracker">
+                <h3 class="tracker-title">Exit Permission Tracker</h3>
+                <div id="tracker-alert" class="alert"></div>
+                <div class="time-display">
+                    <div class="time-box">
+                        <div class="time-label">Start Time</div>
+                        <div id="start-time" class="time-value">--:--:--</div>
+                    </div>
+                    <div class="time-box">
+                        <div class="time-label">End Time</div>
+                        <div id="end-time" class="time-value">--:--:--</div>
+                    </div>
+                    <div class="time-box">
+                        <div class="time-label">Duration</div>
+                        <div id="duration" class="time-value">--:--:--</div>
+                    </div>
+                </div>
+                <div class="action-buttons">
+                    <button id="start-btn" class="btn btn-start">Start Exit</button>
+                    <button id="end-btn" class="btn btn-end" disabled>End Exit</button>
+                </div>
+            </div>
+            
+            <div class="activity-log">
+                <h3 class="log-title">Recent Exit Activities</h3>
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading activity data...</p>
+                </div>
+                <table class="log-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Start Time</th>
+                            <th>End Time</th>
+                            <th>Duration</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="activity-body">
+                        <!-- Activity data will be populated here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Konfigurasi Google Sheets API
+        const STAFF_SHEET_ID = '1J7zVo4zh0kZISjyx15PPhDnxfqGnEdXKWYw3XHAdflM';
+        const ACTIVITY_SHEET_ID = '1J7zVo4zh0kZISjyx15PPhDnxfqGnEdXKWYw3XHAdflM';
+        const STAFF_SHEET_NAME = 'Sheet1'; // Ganti dengan nama sheet yang sesuai
+        const ACTIVITY_SHEET_NAME = 'Sheet2'; // Ganti dengan nama sheet yang sesuai
+        
+        // Variabel global
+        let currentStaff = null;
+        let startTime = null;
+        let timerInterval = null;
+        
+        // DOM Elements
+        const loginPage = document.getElementById('login-page');
+        const dashboard = document.getElementById('dashboard');
+        const loginForm = document.getElementById('login-form');
+        const loginAlert = document.getElementById('login-alert');
+        const logoutBtn = document.getElementById('logout-btn');
+        const staffName = document.getElementById('staff-name');
+        const staffPosition = document.getElementById('staff-position');
+        const startTimeDisplay = document.getElementById('start-time');
+        const endTimeDisplay = document.getElementById('end-time');
+        const durationDisplay = document.getElementById('duration');
+        const startBtn = document.getElementById('start-btn');
+        const endBtn = document.getElementById('end-btn');
+        const trackerAlert = document.getElementById('tracker-alert');
+        const activityBody = document.getElementById('activity-body');
+        const loadingElement = document.querySelector('.loading');
+        
+        // Event Listeners
+        loginForm.addEventListener('submit', handleLogin);
+        logoutBtn.addEventListener('click', handleLogout);
+        startBtn.addEventListener('click', handleStartTime);
+        endBtn.addEventListener('click', handleEndTime);
+        
+        // Fungsi untuk menangani login
+        async function handleLogin(e) {
+            e.preventDefault();
+            
+            const staffId = document.getElementById('staff-id').value;
+            const password = document.getElementById('password').value;
+            
+            // Tampilkan loading
+            loginAlert.textContent = 'Authenticating...';
+            loginAlert.className = 'alert alert-success';
+            loginAlert.style.display = 'block';
+            
+            try {
+                // Simulasi autentikasi dengan Google Sheets
+                const staffData = await getStaffData();
+                const staff = staffData.find(s => s.id === staffId && s.password === password);
+                
+                if (staff) {
+                    // Login berhasil
+                    currentStaff = staff;
+                    staffName.textContent = staff.name;
+                    staffPosition.textContent = staff.position;
+                    
+                    // Sembunyikan halaman login, tampilkan dashboard
+                    loginPage.style.display = 'none';
+                    dashboard.style.display = 'block';
+                    
+                    // Muat data aktivitas
+                    loadActivityData();
+                } else {
+                    // Login gagal
+                    loginAlert.textContent = 'Invalid Staff ID or Password';
+                    loginAlert.className = 'alert alert-error';
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                loginAlert.textContent = 'Authentication failed. Please try again.';
+                loginAlert.className = 'alert alert-error';
+            }
+        }
+        
+        // Fungsi untuk logout
+        function handleLogout() {
+            currentStaff = null;
+            resetTimer();
+            
+            // Reset form login
+            loginForm.reset();
+            
+            // Sembunyikan dashboard, tampilkan halaman login
+            dashboard.style.display = 'none';
+            loginPage.style.display = 'block';
+            
+            // Sembunyikan alert
+            loginAlert.style.display = 'none';
+        }
+        
+        // Fungsi untuk memulai waktu keluar
+        function handleStartTime() {
+            startTime = new Date();
+            startTimeDisplay.textContent = formatTime(startTime);
+            endTimeDisplay.textContent = '--:--:--';
+            durationDisplay.textContent = '--:--:--';
+            
+            // Update tombol
+            startBtn.disabled = true;
+            endBtn.disabled = false;
+            
+            // Mulai timer
+            timerInterval = setInterval(updateTimer, 1000);
+            
+            // Tampilkan pesan sukses
+            showTrackerAlert('Exit time started successfully', 'success');
+        }
+        
+        // Fungsi untuk mengakhiri waktu keluar
+        async function handleEndTime() {
+            if (!startTime) return;
+            
+            const endTime = new Date();
+            const duration = Math.floor((endTime - startTime) / 1000); // dalam detik
+            
+            // Hentikan timer
+            clearInterval(timerInterval);
+            
+            // Update tampilan
+            endTimeDisplay.textContent = formatTime(endTime);
+            durationDisplay.textContent = formatDuration(duration);
+            
+            // Reset tombol
+            startBtn.disabled = false;
+            endBtn.disabled = true;
+            
+            try {
+                // Simpan data ke Google Sheets
+                await saveActivityData(startTime, endTime, duration);
+                
+                // Tampilkan pesan sukses
+                showTrackerAlert('Exit time recorded successfully', 'success');
+                
+                // Muat ulang data aktivitas
+                loadActivityData();
+            } catch (error) {
+                console.error('Error saving activity:', error);
+                showTrackerAlert('Failed to save activity data', 'error');
+            }
+            
+            // Reset timer
+            startTime = null;
+        }
+        
+        // Fungsi untuk memperbarui timer
+        function updateTimer() {
+            if (!startTime) return;
+            
+            const now = new Date();
+            const duration = Math.floor((now - startTime) / 1000); // dalam detik
+            durationDisplay.textContent = formatDuration(duration);
+        }
+        
+        // Fungsi untuk mereset timer
+        function resetTimer() {
+            clearInterval(timerInterval);
+            startTime = null;
+            startTimeDisplay.textContent = '--:--:--';
+            endTimeDisplay.textContent = '--:--:--';
+            durationDisplay.textContent = '--:--:--';
+            startBtn.disabled = false;
+            endBtn.disabled = true;
+        }
+        
+        // Fungsi untuk menampilkan alert di tracker
+        function showTrackerAlert(message, type) {
+            trackerAlert.textContent = message;
+            trackerAlert.className = `alert alert-${type}`;
+            trackerAlert.style.display = 'block';
+            
+            // Sembunyikan alert setelah 5 detik
+            setTimeout(() => {
+                trackerAlert.style.display = 'none';
+            }, 5000);
+        }
+        
+        // Fungsi untuk memuat data aktivitas
+        async function loadActivityData() {
+            loadingElement.style.display = 'block';
+            activityBody.innerHTML = '';
+            
+            try {
+                // Simulasi pengambilan data dari Google Sheets
+                const activityData = await getActivityData();
+                
+                // Filter data untuk staff yang sedang login
+                const staffActivities = activityData.filter(activity => activity.name === currentStaff.name);
+                
+                // Tampilkan data
+                staffActivities.forEach(activity => {
+                    const row = document.createElement('tr');
+                    
+                    row.innerHTML = `
+                        <td>${activity.date}</td>
+                        <td>${activity.start}</td>
+                        <td>${activity.end}</td>
+                        <td>${activity.duration}</td>
+                        <td class="status-active">Completed</td>
+                    `;
+                    
+                    activityBody.appendChild(row);
+                });
+                
+                loadingElement.style.display = 'none';
+            } catch (error) {
+                console.error('Error loading activity data:', error);
+                loadingElement.style.display = 'none';
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `<td colspan="5" style="text-align: center; color: var(--danger);">Failed to load activity data</td>`;
+                activityBody.appendChild(row);
+            }
+        }
+        
+        // Fungsi utilitas untuk memformat waktu
+        function formatTime(date) {
+            return date.toLocaleTimeString('id-ID', { 
+                hour: '2-digit', 
+                minute: '2-digit', 
+                second: '2-digit' 
+            });
+        }
+        
+        // Fungsi utilitas untuk memformat durasi
+        function formatDuration(seconds) {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        // Fungsi untuk mengambil data staff dari Google Sheets
+        async function getStaffData() {
+            // Simulasi data dari Google Sheets
+            // Dalam implementasi nyata, Anda akan menggunakan Google Sheets API
+            return [
+                { name: "John Doe", id: "JD001", password: "pass123", position: "Security Analyst" },
+                { name: "Jane Smith", id: "JS002", password: "pass456", position: "Network Engineer" },
+                { name: "Robert Brown", id: "RB003", password: "pass789", position: "Incident Responder" }
+            ];
+        }
+        
+        // Fungsi untuk mengambil data aktivitas dari Google Sheets
+        async function getActivityData() {
+            // Simulasi data dari Google Sheets
+            // Dalam implementasi nyata, Anda akan menggunakan Google Sheets API
+            return [
+                { date: "2023-10-15", name: "John Doe", start: "14:30:00", end: "15:45:00", duration: "01:15:00" },
+                { date: "2023-10-16", name: "Jane Smith", start: "10:15:00", end: "11:30:00", duration: "01:15:00" },
+                { date: "2023-10-17", name: "Robert Brown", start: "09:00:00", end: "10:30:00", duration: "01:30:00" }
+            ];
+        }
+        
+        // Fungsi untuk menyimpan data aktivitas ke Google Sheets
+        async function saveActivityData(startTime, endTime, duration) {
+            // Simulasi penyimpanan ke Google Sheets
+            // Dalam implementasi nyata, Anda akan menggunakan Google Sheets API
+            const activityData = {
+                date: startTime.toISOString().split('T')[0],
+                name: currentStaff.name,
+                start: formatTime(startTime),
+                end: formatTime(endTime),
+                duration: formatDuration(duration),
+                result: "Completed",
+                note: "Staff exit recorded"
+            };
+            
+            console.log('Activity data to save:', activityData);
+            
+            // Simulasi delay jaringan
+            return new Promise(resolve => setTimeout(resolve, 1000));
+        }
+    </script>
+</body>
+</html>
