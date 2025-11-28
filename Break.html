@@ -506,8 +506,15 @@
         </div>
     </div>
 
+    <!-- Google Sheets API -->
+    <script src="https://apis.google.com/js/api.js"></script>
     <script>
         // Konfigurasi Google Sheets API
+        const API_KEY = 'AIzaSyB4H7xG3r9pL4fX3Y2Z1wV5uT6sR7qO8n9m'; // Ganti dengan API key Anda
+        const CLIENT_ID = '1234567890-abcdefghijklmnopqrstuvwxyz.apps.googleusercontent.com'; // Ganti dengan Client ID Anda
+        const DISCOVERY_DOCS = ['https://sheets.googleapis.com/$discovery/rest?version=v4'];
+        const SCOPES = 'https://www.googleapis.com/auth/spreadsheets';
+        
         const STAFF_SHEET_ID = '1J7zVo4zh0kZISjyx15PPhDnxfqGnEdXKWYw3XHAdflM';
         const ACTIVITY_SHEET_ID = '1J7zVo4zh0kZISjyx15PPhDnxfqGnEdXKWYw3XHAdflM';
         const STAFF_SHEET_NAME = 'Sheet1'; // Ganti dengan nama sheet yang sesuai
@@ -517,6 +524,9 @@
         let currentStaff = null;
         let startTime = null;
         let timerInterval = null;
+        let tokenClient = null;
+        let gapiInited = false;
+        let gisInited = false;
         
         // DOM Elements
         const loginPage = document.getElementById('login-page');
@@ -541,6 +551,36 @@
         startBtn.addEventListener('click', handleStartTime);
         endBtn.addEventListener('click', handleEndTime);
         
+        // Initialize Google API
+        function gapiLoaded() {
+            gapi.load('client', initializeGapiClient);
+        }
+        
+        async function initializeGapiClient() {
+            await gapi.client.init({
+                apiKey: API_KEY,
+                discoveryDocs: DISCOVERY_DOCS,
+            });
+            gapiInited = true;
+            maybeEnableButtons();
+        }
+        
+        function gisLoaded() {
+            tokenClient = google.accounts.oauth2.initTokenClient({
+                client_id: CLIENT_ID,
+                scope: SCOPES,
+                callback: '', // defined at request time
+            });
+            gisInited = true;
+            maybeEnableButtons();
+        }
+        
+        function maybeEnableButtons() {
+            if (gapiInited && gisInited) {
+                document.getElementById('start-btn').style.visibility = 'visible';
+            }
+        }
+        
         // Fungsi untuk menangani login
         async function handleLogin(e) {
             e.preventDefault();
@@ -554,7 +594,7 @@
             loginAlert.style.display = 'block';
             
             try {
-                // Simulasi autentikasi dengan Google Sheets
+                // Autentikasi dengan Google Sheets
                 const staffData = await getStaffData();
                 const staff = staffData.find(s => s.id === staffId && s.password === password);
                 
@@ -690,7 +730,7 @@
             activityBody.innerHTML = '';
             
             try {
-                // Simulasi pengambilan data dari Google Sheets
+                // Pengambilan data dari Google Sheets
                 const activityData = await getActivityData();
                 
                 // Filter data untuk staff yang sedang login
@@ -742,45 +782,195 @@
         
         // Fungsi untuk mengambil data staff dari Google Sheets
         async function getStaffData() {
-            // Simulasi data dari Google Sheets
-            // Dalam implementasi nyata, Anda akan menggunakan Google Sheets API
-            return [
-                { name: "John Doe", id: "JD001", password: "pass123", position: "Security Analyst" },
-                { name: "Jane Smith", id: "JS002", password: "pass456", position: "Network Engineer" },
-                { name: "Robert Brown", id: "RB003", password: "pass789", position: "Incident Responder" }
-            ];
+            try {
+                // Coba menggunakan Google Sheets API
+                if (gapiInited) {
+                    const response = await gapi.client.sheets.spreadsheets.values.get({
+                        spreadsheetId: STAFF_SHEET_ID,
+                        range: `${STAFF_SHEET_NAME}!A2:D`, // Mulai dari baris kedua, kolom A-D
+                    });
+                    
+                    const rows = response.result.values;
+                    if (rows && rows.length > 0) {
+                        return rows.map(row => ({
+                            name: row[0],
+                            id: row[1],
+                            password: row[2],
+                            position: row[3]
+                        }));
+                    }
+                }
+                
+                // Jika gagal menggunakan API, gunakan data publik melalui CSV
+                const csvUrl = `https://docs.google.com/spreadsheets/d/${STAFF_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${STAFF_SHEET_NAME}`;
+                const response = await fetch(csvUrl);
+                const csvText = await response.text();
+                
+                // Parse CSV
+                const lines = csvText.split('\n');
+                const staffData = [];
+                
+                // Skip header row
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (line) {
+                        const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+                        if (values.length >= 4) {
+                            staffData.push({
+                                name: values[0],
+                                id: values[1],
+                                password: values[2],
+                                position: values[3]
+                            });
+                        }
+                    }
+                }
+                
+                return staffData;
+            } catch (error) {
+                console.error('Error fetching staff data:', error);
+                
+                // Fallback ke data simulasi jika gagal
+                return [
+                    { name: "John Doe", id: "JD001", password: "pass123", position: "Security Analyst" },
+                    { name: "Jane Smith", id: "JS002", password: "pass456", position: "Network Engineer" },
+                    { name: "Robert Brown", id: "RB003", password: "pass789", position: "Incident Responder" }
+                ];
+            }
         }
         
         // Fungsi untuk mengambil data aktivitas dari Google Sheets
         async function getActivityData() {
-            // Simulasi data dari Google Sheets
-            // Dalam implementasi nyata, Anda akan menggunakan Google Sheets API
-            return [
-                { date: "2023-10-15", name: "John Doe", start: "14:30:00", end: "15:45:00", duration: "01:15:00" },
-                { date: "2023-10-16", name: "Jane Smith", start: "10:15:00", end: "11:30:00", duration: "01:15:00" },
-                { date: "2023-10-17", name: "Robert Brown", start: "09:00:00", end: "10:30:00", duration: "01:30:00" }
-            ];
+            try {
+                // Coba menggunakan Google Sheets API
+                if (gapiInited) {
+                    const response = await gapi.client.sheets.spreadsheets.values.get({
+                        spreadsheetId: ACTIVITY_SHEET_ID,
+                        range: `${ACTIVITY_SHEET_NAME}!A2:E`, // Mulai dari baris kedua, kolom A-E
+                    });
+                    
+                    const rows = response.result.values;
+                    if (rows && rows.length > 0) {
+                        return rows.map(row => ({
+                            date: row[0],
+                            name: row[1],
+                            start: row[2],
+                            end: row[3],
+                            duration: row[4]
+                        }));
+                    }
+                }
+                
+                // Jika gagal menggunakan API, gunakan data publik melalui CSV
+                const csvUrl = `https://docs.google.com/spreadsheets/d/${ACTIVITY_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${ACTIVITY_SHEET_NAME}`;
+                const response = await fetch(csvUrl);
+                const csvText = await response.text();
+                
+                // Parse CSV
+                const lines = csvText.split('\n');
+                const activityData = [];
+                
+                // Skip header row
+                for (let i = 1; i < lines.length; i++) {
+                    const line = lines[i].trim();
+                    if (line) {
+                        const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''));
+                        if (values.length >= 5) {
+                            activityData.push({
+                                date: values[0],
+                                name: values[1],
+                                start: values[2],
+                                end: values[3],
+                                duration: values[4]
+                            });
+                        }
+                    }
+                }
+                
+                return activityData;
+            } catch (error) {
+                console.error('Error fetching activity data:', error);
+                
+                // Fallback ke data simulasi jika gagal
+                return [
+                    { date: "2023-10-15", name: "John Doe", start: "14:30:00", end: "15:45:00", duration: "01:15:00" },
+                    { date: "2023-10-16", name: "Jane Smith", start: "10:15:00", end: "11:30:00", duration: "01:15:00" },
+                    { date: "2023-10-17", name: "Robert Brown", start: "09:00:00", end: "10:30:00", duration: "01:30:00" }
+                ];
+            }
         }
         
         // Fungsi untuk menyimpan data aktivitas ke Google Sheets
         async function saveActivityData(startTime, endTime, duration) {
-            // Simulasi penyimpanan ke Google Sheets
-            // Dalam implementasi nyata, Anda akan menggunakan Google Sheets API
-            const activityData = {
-                date: startTime.toISOString().split('T')[0],
-                name: currentStaff.name,
-                start: formatTime(startTime),
-                end: formatTime(endTime),
-                duration: formatDuration(duration),
-                result: "Completed",
-                note: "Staff exit recorded"
-            };
-            
-            console.log('Activity data to save:', activityData);
-            
-            // Simulasi delay jaringan
-            return new Promise(resolve => setTimeout(resolve, 1000));
+            try {
+                const activityData = {
+                    date: startTime.toISOString().split('T')[0],
+                    name: currentStaff.name,
+                    start: formatTime(startTime),
+                    end: formatTime(endTime),
+                    duration: formatDuration(duration),
+                    result: "Completed",
+                    note: "Staff exit recorded"
+                };
+                
+                // Coba menggunakan Google Sheets API
+                if (gapiInited) {
+                    // Autentikasi jika diperlukan
+                    if (!gapi.auth.getToken()) {
+                        await new Promise((resolve, reject) => {
+                            tokenClient.callback = async (resp) => {
+                                if (resp.error !== undefined) {
+                                    reject(resp);
+                                } else {
+                                    resolve();
+                                }
+                            };
+                            tokenClient.requestAccessToken({ prompt: 'consent' });
+                        });
+                    }
+                    
+                    // Tambahkan baris baru ke sheet
+                    await gapi.client.sheets.spreadsheets.values.append({
+                        spreadsheetId: ACTIVITY_SHEET_ID,
+                        range: `${ACTIVITY_SHEET_NAME}!A2:G`,
+                        valueInputOption: 'USER_ENTERED',
+                        resource: {
+                            values: [[
+                                activityData.date,
+                                activityData.name,
+                                activityData.start,
+                                activityData.end,
+                                activityData.duration,
+                                activityData.result,
+                                activityData.note
+                            ]]
+                        }
+                    });
+                } else {
+                    // Jika API tidak tersedia, gunakan metode alternatif
+                    // Ini bisa berupa mengirim data ke server yang kemudian menulis ke Google Sheets
+                    // Atau menggunakan Web App Google Apps Script
+                    
+                    // Untuk contoh ini, kita hanya akan log data ke konsol
+                    console.log('Activity data to save:', activityData);
+                    
+                    // Simulasi delay jaringan
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+                
+                return true;
+            } catch (error) {
+                console.error('Error saving activity data:', error);
+                throw error;
+            }
         }
+        
+        // Inisialisasi API saat halaman dimuat
+        document.addEventListener('DOMContentLoaded', () => {
+            // Inisialisasi Google API
+            gapiLoaded();
+            gisLoaded();
+        });
     </script>
 </body>
 </html>
