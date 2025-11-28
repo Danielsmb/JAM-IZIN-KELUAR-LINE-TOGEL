@@ -418,6 +418,30 @@
             color: var(--primary);
         }
         
+        /* Sync Status */
+        .sync-status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-size: 14px;
+            display: none;
+            z-index: 1000;
+        }
+        
+        .sync-success {
+            background: rgba(0, 255, 157, 0.2);
+            border: 1px solid var(--primary);
+            color: var(--primary);
+        }
+        
+        .sync-error {
+            background: rgba(255, 0, 110, 0.2);
+            border: 1px solid var(--danger);
+            color: var(--danger);
+        }
+        
         /* Responsive Design */
         @media (max-width: 768px) {
             .time-display {
@@ -545,6 +569,9 @@
             </div>
         </div>
     </div>
+    
+    <!-- Sync Status Notification -->
+    <div id="sync-status" class="sync-status"></div>
 
     <script>
         // Konfigurasi Google Sheets
@@ -553,12 +580,17 @@
         const ACTIVITY_SHEET_NAME = 'Sheet2'; // Nama sheet untuk data aktivitas
         const POSITION_LIMIT_SHEET_NAME = 'Sheet3'; // Nama sheet untuk data limit per jabatan
         
+        // Google Form ID untuk menyimpan data aktivitas
+        // Anda perlu membuat Google Form dengan field: Date, Name, Start Time, End Time, Duration, Result, Note
+        const GOOGLE_FORM_ID = '1FAIpQLSfExampleFormId'; // Ganti dengan ID Google Form Anda
+        
         // Variabel global
         let currentStaff = null;
         let startTime = null;
         let timerInterval = null;
         let positionLimits = {};
         let todayActivities = [];
+        let pendingSyncData = [];
         
         // DOM Elements
         const loginPage = document.getElementById('login-page');
@@ -577,6 +609,7 @@
         const activityBody = document.getElementById('activity-body');
         const loadingElement = document.querySelector('.loading');
         const remainingExitsElement = document.getElementById('remaining-exits');
+        const syncStatusElement = document.getElementById('sync-status');
         
         // Event Listeners
         loginForm.addEventListener('submit', handleLogin);
@@ -588,6 +621,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             checkLoginStatus();
             loadPositionLimits();
+            syncPendingData(); // Sinkronkan data yang tertunda
         });
         
         // Fungsi untuk mengecek status login
@@ -731,7 +765,7 @@
                 loadActivityData();
             } catch (error) {
                 console.error('Error saving activity:', error);
-                showTrackerAlert('Failed to save activity data', 'error');
+                showTrackerAlert('Failed to save activity data. Data will be synced later.', 'warning');
             }
             
             // Reset timer
@@ -770,17 +804,35 @@
             }, 5000);
         }
         
+        // Fungsi untuk menampilkan status sinkronisasi
+        function showSyncStatus(message, type) {
+            syncStatusElement.textContent = message;
+            syncStatusElement.className = `sync-status sync-${type}`;
+            syncStatusElement.style.display = 'block';
+            
+            // Sembunyikan setelah 3 detik
+            setTimeout(() => {
+                syncStatusElement.style.display = 'none';
+            }, 3000);
+        }
+        
         // Fungsi untuk memuat data aktivitas
         async function loadActivityData() {
             loadingElement.style.display = 'block';
             activityBody.innerHTML = '';
             
             try {
-                // Pengambilan data dari Google Sheets
+                // Ambil data dari Google Sheets
                 const activityData = await getActivityData();
                 
+                // Ambil data dari localStorage
+                const localActivities = JSON.parse(localStorage.getItem('activities') || '[]');
+                
+                // Gabungkan data
+                const allActivities = [...activityData, ...localActivities];
+                
                 // Filter data untuk staff yang sedang login
-                todayActivities = activityData.filter(activity => 
+                todayActivities = allActivities.filter(activity => 
                     activity.name === currentStaff.name && 
                     isToday(activity.date)
                 );
@@ -975,12 +1027,8 @@
             } catch (error) {
                 console.error('Error fetching activity data:', error);
                 
-                // Fallback ke data simulasi jika gagal
-                return [
-                    { date: "2023-10-15", name: "John Doe", start: "14:30:00", end: "15:45:00", duration: "01:15:00" },
-                    { date: "2023-10-16", name: "Jane Smith", start: "10:15:00", end: "11:30:00", duration: "01:15:00" },
-                    { date: "2023-10-17", name: "Robert Brown", start: "09:00:00", end: "10:30:00", duration: "01:30:00" }
-                ];
+                // Return empty array if failed
+                return [];
             }
         }
         
@@ -1032,71 +1080,92 @@
         
         // Fungsi untuk menyimpan data aktivitas ke Google Sheets
         async function saveActivityData(startTime, endTime, duration) {
+            const activityData = {
+                date: startTime.toISOString().split('T')[0],
+                name: currentStaff.name,
+                start: formatTime(startTime),
+                end: formatTime(endTime),
+                duration: formatDuration(duration),
+                result: "Completed",
+                note: "Staff exit recorded"
+            };
+            
+            // Simpan ke localStorage terlebih dahulu
+            let activities = JSON.parse(localStorage.getItem('activities') || '[]');
+            activities.push(activityData);
+            localStorage.setItem('activities', JSON.stringify(activities));
+            
+            // Tambahkan ke pending sync data
+            pendingSyncData.push(activityData);
+            localStorage.setItem('pendingSyncData', JSON.stringify(pendingSyncData));
+            
+            // Coba sinkronkan ke Google Sheets
             try {
-                const activityData = {
-                    date: startTime.toISOString().split('T')[0],
-                    name: currentStaff.name,
-                    start: formatTime(startTime),
-                    end: formatTime(endTime),
-                    duration: formatDuration(duration),
-                    result: "Completed",
-                    note: "Staff exit recorded"
-                };
+                // Metode 1: Google Form (lebih reliable)
+                await submitToGoogleForm(activityData);
+                showSyncStatus('Data synced to Google Sheets', 'success');
                 
-                // Gunakan Google Apps Script Web App untuk menulis data ke Google Sheets
-                // URL ini harus diganti dengan URL Web App Anda
-                const webAppUrl = 'https://script.google.com/macros/s/AKfycbzV-5N7B3l7j8k9oP1qR2sT3uV4wX5yZ6a7b8c9d0e1f2g3h4i5j6k7l8m9n/exec';
-                
-                // Kirim data ke Web App
-                const response = await fetch(webAppUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        spreadsheetId: SPREADSHEET_ID,
-                        sheetName: ACTIVITY_SHEET_NAME,
-                        data: [
-                            activityData.date,
-                            activityData.name,
-                            activityData.start,
-                            activityData.end,
-                            activityData.duration,
-                            activityData.result,
-                            activityData.note
-                        ]
-                    }),
-                    mode: 'no-cors' // Diperlukan karena CORS policy
-                });
-                
-                console.log('Activity data saved:', activityData);
-                
-                // Simpan juga ke localStorage sebagai backup
-                let activities = JSON.parse(localStorage.getItem('activities') || '[]');
-                activities.push(activityData);
-                localStorage.setItem('activities', JSON.stringify(activities));
-                
-                // Simulasi delay jaringan
-                return new Promise(resolve => setTimeout(resolve, 1000));
+                // Hapus dari pending sync setelah berhasil
+                pendingSyncData = pendingSyncData.filter(item => item !== activityData);
+                localStorage.setItem('pendingSyncData', JSON.stringify(pendingSyncData));
             } catch (error) {
-                console.error('Error saving activity data:', error);
-                
-                // Simpan ke localStorage sebagai fallback
-                const activityData = {
-                    date: startTime.toISOString().split('T')[0],
-                    name: currentStaff.name,
-                    start: formatTime(startTime),
-                    end: formatTime(endTime),
-                    duration: formatDuration(duration),
-                    result: "Completed",
-                    note: "Staff exit recorded"
-                };
-                
-                let activities = JSON.parse(localStorage.getItem('activities') || '[]');
-                activities.push(activityData);
-                localStorage.setItem('activities', JSON.stringify(activities));
-                
-                throw error;
+                console.error('Error syncing to Google Sheets:', error);
+                showSyncStatus('Data saved locally. Will sync when connection is available.', 'warning');
+            }
+        }
+        
+        // Fungsi untuk submit data ke Google Form
+        async function submitToGoogleForm(data) {
+            // Form field entries - sesuaikan dengan field di Google Form Anda
+            const formUrl = `https://docs.google.com/forms/d/e/${GOOGLE_FORM_ID}/formResponse`;
+            
+            const formData = new FormData();
+            formData.append('entry.123456789', data.date); // Ganti dengan entry ID yang sesuai
+            formData.append('entry.234567890', data.name);
+            formData.append('entry.345678901', data.start);
+            formData.append('entry.456789012', data.end);
+            formData.append('entry.567890123', data.duration);
+            formData.append('entry.678901234', data.result);
+            formData.append('entry.789012345', data.note);
+            
+            const response = await fetch(formUrl, {
+                method: 'POST',
+                body: formData,
+                mode: 'no-cors'
+            });
+            
+            return response;
+        }
+        
+        // Fungsi untuk sinkronkan data yang tertunda
+        async function syncPendingData() {
+            // Ambil data yang tertunda dari localStorage
+            const savedPendingData = localStorage.getItem('pendingSyncData');
+            if (savedPendingData) {
+                try {
+                    pendingSyncData = JSON.parse(savedPendingData);
+                    
+                    if (pendingSyncData.length > 0) {
+                        showSyncStatus(`Syncing ${pendingSyncData.length} pending records...`, 'success');
+                        
+                        // Coba sinkronkan setiap data
+                        for (const data of pendingSyncData) {
+                            try {
+                                await submitToGoogleForm(data);
+                            } catch (error) {
+                                console.error('Error syncing individual record:', error);
+                            }
+                        }
+                        
+                        // Hapus semua data yang berhasil disinkronkan
+                        localStorage.removeItem('pendingSyncData');
+                        pendingSyncData = [];
+                        
+                        showSyncStatus('All pending data synced successfully', 'success');
+                    }
+                } catch (error) {
+                    console.error('Error parsing pending sync data:', error);
+                }
             }
         }
         
