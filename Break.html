@@ -407,7 +407,7 @@
             white-space: nowrap;
         }
         
-        .filter-select, .date-input {
+        .date-input {
             padding: 8px 15px;
             background: rgba(5, 5, 16, 0.7);
             border: 1px solid rgba(0, 255, 157, 0.3);
@@ -417,7 +417,7 @@
             transition: all 0.3s ease;
         }
         
-        .filter-select:focus, .date-input:focus {
+        .date-input:focus {
             outline: none;
             border-color: var(--primary);
             box-shadow: 0 0 10px rgba(0, 255, 157, 0.2);
@@ -590,12 +590,6 @@
                 text-align: center;
             }
             
-            .exit-limit-info {
-                flex-direction: column;
-                gap: 15px;
-                text-align: center;
-            }
-            
             .log-header {
                 flex-direction: column;
                 gap: 15px;
@@ -698,23 +692,10 @@
                     <h3 class="log-title">Recent Exit Activities</h3>
                     <div class="filter-container">
                         <div class="filter-group">
-                            <label class="filter-label">Filter:</label>
-                            <select id="filter-select" class="filter-select">
-                                <option value="all">All Records</option>
-                                <option value="today">Today</option>
-                                <option value="week">This Week</option>
-                                <option value="month">This Month</option>
-                                <option value="daterange">Date Range</option>
-                                <option value="late">Late (>15 min)</option>
-                                <option value="ontime">On Time (≤15 min)</option>
-                            </select>
+                            <label class="filter-label">Filter by Date:</label>
+                            <input type="date" id="filter-date" class="date-input">
                         </div>
-                        <div class="filter-group" id="date-range-group" style="display: none;">
-                            <label class="filter-label">From:</label>
-                            <input type="date" id="start-date" class="date-input">
-                            <label class="filter-label">To:</label>
-                            <input type="date" id="end-date" class="date-input">
-                        </div>
+                        <button id="reset-filter" class="btn" style="padding: 8px 16px; font-size: 14px;">Show All</button>
                     </div>
                 </div>
                 <div class="loading">
@@ -746,22 +727,21 @@
     <script>
         // Konfigurasi Google Sheets
         const SPREADSHEET_ID = '1J7zVo4zh0kZISjyx15PPhDnxfqGnEdXKWYw3XHAdflM';
-        const STAFF_SHEET_NAME = 'Sheet1'; // Nama sheet untuk data staff
-        const ACTIVITY_SHEET_NAME = 'Sheet2'; // Nama sheet untuk data aktivitas
-        const POSITION_LIMIT_SHEET_NAME = 'Sheet3'; // Nama sheet untuk data limit per jabatan
+        const ACTIVITY_SHEET_GID = '19279517'; // GID untuk sheet aktivitas
+        const POSITION_LIMIT_SHEET_GID = '1500109710'; // GID untuk sheet limit per jabatan
         
-        // Google Form ID untuk menyimpan data aktivitas
-        // Anda perlu membuat Google Form dengan field: Date, Name, Start Time, End Time, Duration, Result, Note
-        const GOOGLE_FORM_ID = '1FAIpQLSfExampleFormId'; // Ganti dengan ID Google Form Anda
+        // Google Apps Script URL untuk menyimpan data
+        // Anda perlu membuat Google Apps Script untuk menangani permintaan ini
+        // Contoh: https://script.google.com/macros/s/AKfycbx1234567890abcdef1234567890abcdef/exec
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx1234567890abcdef1234567890abcdef/exec';
         
         // Variabel global
         let currentStaff = null;
         let startTime = null;
         let timerInterval = null;
+        let allActivities = [];
         let positionLimits = {};
         let todayActivities = [];
-        let allActivities = [];
-        let pendingSyncData = [];
         
         // DOM Elements
         const loginPage = document.getElementById('login-page');
@@ -779,32 +759,25 @@
         const trackerAlert = document.getElementById('tracker-alert');
         const activityBody = document.getElementById('activity-body');
         const loadingElement = document.querySelector('.loading');
-        const remainingExitsElement = document.getElementById('remaining-exits');
         const syncStatusElement = document.getElementById('sync-status');
-        const filterSelect = document.getElementById('filter-select');
-        const dateRangeGroup = document.getElementById('date-range-group');
-        const startDateInput = document.getElementById('start-date');
-        const endDateInput = document.getElementById('end-date');
+        const filterDateInput = document.getElementById('filter-date');
+        const resetFilterBtn = document.getElementById('reset-filter');
+        const remainingExitsElement = document.getElementById('remaining-exits');
         
         // Event Listeners
         loginForm.addEventListener('submit', handleLogin);
         logoutBtn.addEventListener('click', handleLogout);
         startBtn.addEventListener('click', handleStartTime);
         endBtn.addEventListener('click', handleEndTime);
-        filterSelect.addEventListener('change', handleFilterChange);
-        startDateInput.addEventListener('change', filterActivities);
-        endDateInput.addEventListener('change', filterActivities);
+        filterDateInput.addEventListener('change', filterActivitiesByDate);
+        resetFilterBtn.addEventListener('click', resetFilter);
         
-        // Cek status login saat halaman dimuat
+        // Set today's date as default for filter
         document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date().toISOString().split('T')[0];
+            filterDateInput.value = today;
             checkLoginStatus();
             loadPositionLimits();
-            syncPendingData(); // Sinkronkan data yang tertunda
-            
-            // Set today's date as default for date range filter
-            const today = new Date().toISOString().split('T')[0];
-            startDateInput.value = today;
-            endDateInput.value = today;
         });
         
         // Fungsi untuk mengecek status login
@@ -942,7 +915,7 @@
             
             try {
                 // Simpan data ke Google Sheets
-                await saveActivityData(startTime, endTime, duration, isLate);
+                await saveActivityToGoogleSheets(startTime, endTime, duration, isLate);
                 
                 // Tampilkan pesan sukses
                 if (isLate) {
@@ -955,7 +928,7 @@
                 loadActivityData();
             } catch (error) {
                 console.error('Error saving activity:', error);
-                showTrackerAlert('Failed to save activity data. Data will be synced later.', 'warning');
+                showTrackerAlert('Failed to save activity data. Please try again.', 'error');
             }
             
             // Reset timer
@@ -1026,22 +999,20 @@
             
             try {
                 // Ambil data dari Google Sheets
-                const activityData = await getActivityData();
-                
-                // Ambil data dari localStorage
-                const localActivities = JSON.parse(localStorage.getItem('activities') || '[]');
-                
-                // Gabungkan data
-                allActivities = [...activityData, ...localActivities];
+                allActivities = await getActivityData();
                 
                 // Filter data untuk staff yang sedang login
-                todayActivities = allActivities.filter(activity => 
-                    activity.name === currentStaff.name && 
+                const staffActivities = allActivities.filter(activity => 
+                    activity.name === currentStaff.name
+                );
+                
+                // Filter data untuk hari ini
+                todayActivities = staffActivities.filter(activity => 
                     isToday(activity.date)
                 );
                 
-                // Tampilkan data dengan filter yang dipilih
-                displayFilteredActivities();
+                // Tampilkan data dengan filter tanggal
+                displayFilteredActivities(staffActivities);
                 
                 // Update tampilan batas keluar
                 updateExitLimitDisplay();
@@ -1057,120 +1028,100 @@
             }
         }
         
-        // Fungsi untuk menampilkan aktivitas yang difilter
-        function displayFilteredActivities() {
+        // Fungsi untuk menampilkan aktivitas yang difilter berdasarkan tanggal
+        function displayFilteredActivities(activities) {
             activityBody.innerHTML = '';
             
-            const filterValue = filterSelect.value;
-            let filteredActivities = [];
+            const filterDate = filterDateInput.value;
+            let filteredActivities = activities;
             
-            // Filter berdasarkan pilihan
-            switch(filterValue) {
-                case 'all':
-                    filteredActivities = allActivities.filter(activity => activity.name === currentStaff.name);
-                    break;
-                case 'today':
-                    filteredActivities = allActivities.filter(activity => 
-                        activity.name === currentStaff.name && 
-                        isToday(activity.date)
-                    );
-                    break;
-                case 'week':
-                    filteredActivities = allActivities.filter(activity => 
-                        activity.name === currentStaff.name && 
-                        isThisWeek(activity.date)
-                    );
-                    break;
-                case 'month':
-                    filteredActivities = allActivities.filter(activity => 
-                        activity.name === currentStaff.name && 
-                        isThisMonth(activity.date)
-                    );
-                    break;
-                case 'daterange':
-                    const startDate = new Date(startDateInput.value);
-                    const endDate = new Date(endDateInput.value);
-                    endDate.setHours(23, 59, 59, 999); // Include the entire end date
-                    
-                    filteredActivities = allActivities.filter(activity => {
-                        if (activity.name !== currentStaff.name) return false;
-                        const activityDate = new Date(activity.date);
-                        return activityDate >= startDate && activityDate <= endDate;
-                    });
-                    break;
-                case 'late':
-                    filteredActivities = allActivities.filter(activity => 
-                        activity.name === currentStaff.name && 
-                        activity.isLate
-                    );
-                    break;
-                case 'ontime':
-                    filteredActivities = allActivities.filter(activity => 
-                        activity.name === currentStaff.name && 
-                        !activity.isLate
-                    );
-                    break;
+            // Filter berdasarkan tanggal jika ada filter
+            if (filterDate) {
+                filteredActivities = activities.filter(activity => 
+                    activity.date === filterDate
+                );
             }
             
             // Tampilkan data
-            filteredActivities.forEach((activity, index) => {
+            if (filteredActivities.length === 0) {
                 const row = document.createElement('tr');
-                
-                // Cek apakah durasi melebihi 15 menit
-                const durationInSeconds = parseDurationToSeconds(activity.duration);
-                const isLate = durationInSeconds > 15 * 60;
-                
-                row.innerHTML = `
-                    <td>${activity.date}</td>
-                    <td>${activity.start}</td>
-                    <td>${activity.end}</td>
-                    <td class="${isLate ? 'duration-late' : 'duration-normal'}">${activity.duration}</td>
-                    <td class="${isLate ? 'status-late' : 'status-active'}">${isLate ? 'Telat' : 'Aman'}</td>
-                    <td><button class="btn btn-reset" data-index="${index}">Reset</button></td>
-                `;
-                
+                row.innerHTML = `<td colspan="6" style="text-align: center; color: var(--secondary);">No activities found</td>`;
                 activityBody.appendChild(row);
-            });
-            
-            // Tambahkan event listener untuk tombol reset
-            document.querySelectorAll('.btn-reset').forEach(btn => {
-                btn.addEventListener('click', handleResetActivity);
-            });
-        }
-        
-        // Fungsi untuk menangani perubahan filter
-        function handleFilterChange() {
-            const filterValue = filterSelect.value;
-            
-            // Tampilkan atau sembunyikan date range group
-            if (filterValue === 'daterange') {
-                dateRangeGroup.style.display = 'flex';
             } else {
-                dateRangeGroup.style.display = 'none';
+                filteredActivities.forEach((activity, index) => {
+                    const row = document.createElement('tr');
+                    
+                    // Cek apakah durasi melebihi 15 menit
+                    const durationInSeconds = parseDurationToSeconds(activity.duration);
+                    const isLate = durationInSeconds > 15 * 60;
+                    
+                    row.innerHTML = `
+                        <td>${activity.date}</td>
+                        <td>${activity.start}</td>
+                        <td>${activity.end}</td>
+                        <td class="${isLate ? 'duration-late' : 'duration-normal'}">${activity.duration}</td>
+                        <td class="${isLate ? 'status-late' : 'status-active'}">${isLate ? 'Late' : 'On Time'}</td>
+                        <td><button class="btn btn-reset" data-index="${index}">Reset</button></td>
+                    `;
+                    
+                    activityBody.appendChild(row);
+                });
+                
+                // Tambahkan event listener untuk tombol reset
+                document.querySelectorAll('.btn-reset').forEach(btn => {
+                    btn.addEventListener('click', handleResetActivity);
+                });
             }
-            
-            // Filter aktivitas
-            filterActivities();
         }
         
-        // Fungsi untuk filter aktivitas
-        function filterActivities() {
-            displayFilteredActivities();
+        // Fungsi untuk filter aktivitas berdasarkan tanggal
+        function filterActivitiesByDate() {
+            const staffActivities = allActivities.filter(activity => 
+                activity.name === currentStaff.name
+            );
+            displayFilteredActivities(staffActivities);
+        }
+        
+        // Fungsi untuk reset filter
+        function resetFilter() {
+            filterDateInput.value = '';
+            const staffActivities = allActivities.filter(activity => 
+                activity.name === currentStaff.name
+            );
+            displayFilteredActivities(staffActivities);
         }
         
         // Fungsi untuk menangani reset aktivitas
         function handleResetActivity(e) {
             const index = e.target.getAttribute('data-index');
-            const activity = allActivities[index];
+            const filterDate = filterDateInput.value;
             
-            if (confirm(`Are you sure you want to reset this activity from ${activity.date}?`)) {
+            // Dapatkan aktivitas yang akan dihapus
+            let activitiesToDelete;
+            if (filterDate) {
+                activitiesToDelete = allActivities.filter(activity => 
+                    activity.name === currentStaff.name && 
+                    activity.date === filterDate
+                );
+            } else {
+                activitiesToDelete = allActivities.filter(activity => 
+                    activity.name === currentStaff.name
+                );
+            }
+            
+            const activityToDelete = activitiesToDelete[index];
+            
+            if (confirm(`Are you sure you want to reset this activity from ${activityToDelete.date}?`)) {
                 // Hapus dari array allActivities
-                allActivities.splice(index, 1);
+                const globalIndex = allActivities.findIndex(activity => 
+                    activity.name === currentStaff.name && 
+                    activity.date === activityToDelete.date &&
+                    activity.start === activityToDelete.start
+                );
                 
-                // Simpan perubahan ke localStorage
-                localStorage.setItem('activities', JSON.stringify(
-                    allActivities.filter(a => !a.fromSheet)
-                ));
+                if (globalIndex !== -1) {
+                    allActivities.splice(globalIndex, 1);
+                }
                 
                 // Tampilkan pesan sukses
                 showSyncStatus('Activity reset successfully', 'success');
@@ -1263,29 +1214,11 @@
             return dateString === today;
         }
         
-        // Fungsi utilitas untuk memeriksa apakah tanggal minggu ini
-        function isThisWeek(dateString) {
-            const date = new Date(dateString);
-            const today = new Date();
-            const firstDayOfWeek = new Date(today.setDate(today.getDate() - today.getDay()));
-            const lastDayOfWeek = new Date(today.setDate(today.getDate() - today.getDay() + 6));
-            
-            return date >= firstDayOfWeek && date <= lastDayOfWeek;
-        }
-        
-        // Fungsi utilitas untuk memeriksa apakah tanggal bulan ini
-        function isThisMonth(dateString) {
-            const date = new Date(dateString);
-            const today = new Date();
-            
-            return date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear();
-        }
-        
         // Fungsi untuk mengambil data staff dari Google Sheets
         async function getStaffData() {
             try {
                 // Gunakan CSV export untuk mengambil data dari Google Sheets
-                const csvUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=${STAFF_SHEET_NAME}`;
+                const csvUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&sheet=Sheet1`;
                 const response = await fetch(csvUrl);
                 
                 if (!response.ok) {
@@ -1333,7 +1266,7 @@
         async function getActivityData() {
             try {
                 // Gunakan CSV export untuk mengambil data dari Google Sheets
-                const csvUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&gid=19279517`;
+                const csvUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&gid=${ACTIVITY_SHEET_GID}`;
                 const response = await fetch(csvUrl);
                 
                 if (!response.ok) {
@@ -1354,15 +1287,14 @@
                         const values = parseCSVLine(line);
                         
                         if (values.length >= 5) {
-                            const durationInSeconds = parseDurationToSeconds(values[4]);
                             activityData.push({
                                 date: values[0],
                                 name: values[1],
                                 start: values[2],
                                 end: values[3],
                                 duration: values[4],
-                                isLate: durationInSeconds > 15 * 60,
-                                fromSheet: true
+                                result: values[5] || '',
+                                note: values[6] || ''
                             });
                         }
                     }
@@ -1381,7 +1313,7 @@
         async function getPositionLimitsData() {
             try {
                 // Gunakan CSV export untuk mengambil data dari Google Sheets
-                const csvUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&gid=1500109710`;
+                const csvUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&gid=${POSITION_LIMIT_SHEET_GID}`;
                 const response = await fetch(csvUrl);
                 
                 if (!response.ok) {
@@ -1424,95 +1356,77 @@
         }
         
         // Fungsi untuk menyimpan data aktivitas ke Google Sheets
-        async function saveActivityData(startTime, endTime, duration, isLate) {
+        async function saveActivityToGoogleSheets(startTime, endTime, duration, isLate) {
             const activityData = {
                 date: startTime.toISOString().split('T')[0],
                 name: currentStaff.name,
                 start: formatTime(startTime),
                 end: formatTime(endTime),
                 duration: formatDuration(duration),
-                result: isLate ? "Telat" : "Aman",
-                note: "Staff exit recorded",
-                isLate: isLate
+                result: isLate ? "Late" : "On Time",
+                note: "Staff exit recorded via CyberSec Portal"
             };
             
-            // Simpan ke localStorage terlebih dahulu
-            let activities = JSON.parse(localStorage.getItem('activities') || '[]');
-            activities.push(activityData);
-            localStorage.setItem('activities', JSON.stringify(activities));
-            
-            // Tambahkan ke pending sync data
-            pendingSyncData.push(activityData);
-            localStorage.setItem('pendingSyncData', JSON.stringify(pendingSyncData));
-            
-            // Coba sinkronkan ke Google Sheets
             try {
-                // Metode 1: Google Form (lebih reliable)
-                await submitToGoogleForm(activityData);
-                showSyncStatus('Data synced to Google Sheets', 'success');
-                
-                // Hapus dari pending sync setelah berhasil
-                pendingSyncData = pendingSyncData.filter(item => item !== activityData);
-                localStorage.setItem('pendingSyncData', JSON.stringify(pendingSyncData));
+                // Metode 1: Google Apps Script (Recommended)
+                await submitViaGoogleAppsScript(activityData);
+                showSyncStatus('Data saved to Google Sheets', 'success');
             } catch (error) {
-                console.error('Error syncing to Google Sheets:', error);
-                showSyncStatus('Data saved locally. Will sync when connection is available.', 'warning');
+                console.error('Error saving via Google Apps Script:', error);
+                
+                // Metode 2: Google Form (Fallback)
+                try {
+                    await submitViaGoogleForm(activityData);
+                    showSyncStatus('Data saved to Google Sheets', 'success');
+                } catch (formError) {
+                    console.error('Error saving via Google Form:', formError);
+                    throw new Error('Failed to save data to Google Sheets');
+                }
             }
         }
         
-        // Fungsi untuk submit data ke Google Form
-        async function submitToGoogleForm(data) {
-            // Form field entries - sesuaikan dengan field di Google Form Anda
-            const formUrl = `https://docs.google.com/forms/d/e/${GOOGLE_FORM_ID}/formResponse`;
+        // Fungsi untuk submit data via Google Apps Script
+        async function submitViaGoogleAppsScript(data) {
+            // Ganti URL dengan URL Google Apps Script Anda
+            const scriptUrl = GOOGLE_SCRIPT_URL;
             
-            const formData = new FormData();
-            formData.append('entry.123456789', data.date); // Ganti dengan entry ID yang sesuai
-            formData.append('entry.234567890', data.name);
-            formData.append('entry.345678901', data.start);
-            formData.append('entry.456789012', data.end);
-            formData.append('entry.567890123', data.duration);
-            formData.append('entry.678901234', data.result);
-            formData.append('entry.789012345', data.note);
+            const response = await fetch(scriptUrl, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            return response.json();
+        }
+        
+        // Fungsi untuk submit data via Google Form (Fallback)
+        async function submitViaGoogleForm(data) {
+            // Anda perlu membuat Google Form dengan field yang sesuai
+            // dan mengganti entry IDs dengan yang sesuai
+            const formUrl = 'https://docs.google.com/forms/d/e/1FAIpQLSdExampleFormId/formResponse';
+            
+            const formData = new URLSearchParams();
+            formData.append('entry.123456789', data.date); // Tanggal
+            formData.append('entry.234567890', data.name); // Nama
+            formData.append('entry.345678901', data.start); // Start Time
+            formData.append('entry.456789012', data.end); // End Time
+            formData.append('entry.567890123', data.duration); // Duration
+            formData.append('entry.678901234', data.result); // Result
+            formData.append('entry.789012345', data.note); // Note
             
             const response = await fetch(formUrl, {
                 method: 'POST',
                 body: formData,
-                mode: 'no-cors'
+                mode: 'no-cors' // no-cors mode untuk menghindari CORS issues
             });
             
             return response;
-        }
-        
-        // Fungsi untuk sinkronkan data yang tertunda
-        async function syncPendingData() {
-            // Ambil data yang tertunda dari localStorage
-            const savedPendingData = localStorage.getItem('pendingSyncData');
-            if (savedPendingData) {
-                try {
-                    pendingSyncData = JSON.parse(savedPendingData);
-                    
-                    if (pendingSyncData.length > 0) {
-                        showSyncStatus(`Syncing ${pendingSyncData.length} pending records...`, 'success');
-                        
-                        // Coba sinkronkan setiap data
-                        for (const data of pendingSyncData) {
-                            try {
-                                await submitToGoogleForm(data);
-                            } catch (error) {
-                                console.error('Error syncing individual record:', error);
-                            }
-                        }
-                        
-                        // Hapus semua data yang berhasil disinkronkan
-                        localStorage.removeItem('pendingSyncData');
-                        pendingSyncData = [];
-                        
-                        showSyncStatus('All pending data synced successfully', 'success');
-                    }
-                } catch (error) {
-                    console.error('Error parsing pending sync data:', error);
-                }
-            }
         }
         
         // Fungsi untuk parsing CSV line dengan benar
