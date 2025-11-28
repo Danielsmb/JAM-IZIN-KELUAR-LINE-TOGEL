@@ -36,8 +36,7 @@
             overflow-x: hidden;
             background-image: 
                 radial-gradient(circle at 10% 20%, rgba(0, 255, 157, 0.05) 0%, transparent 20%),
-                radial-gradient(circle at 90% 80%, rgba(0, 184, 255, 0.05) 0%, transparent 20%),
-                url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect x="0" y="0" width="100" height="100" fill="none" stroke="rgba(0, 255, 157, 0.05)" stroke-width="0.5"/><text x="10" y="20" font-family="monospace" font-size="10" fill="rgba(0, 255, 157, 0.1)">01001</text><text x="60" y="40" font-family="monospace" font-size="10" fill="rgba(0, 184, 255, 0.1)">11010</text><text x="20" y="70" font-family="monospace" font-size="10" fill="rgba(255, 0, 110, 0.1)">00110</text><text x="70" y="90" font-family="monospace" font-size="10" fill="rgba(255, 189, 0, 0.1)">10101</text></svg>');
+                radial-gradient(circle at 90% 80%, rgba(0, 184, 255, 0.05) 0%, transparent 20%);
         }
         
         .container {
@@ -341,18 +340,6 @@
             background: var(--gradient-3);
         }
         
-        .btn-reset {
-            background: var(--gradient-2);
-            padding: 8px 16px;
-            font-size: 14px;
-            border-radius: 6px;
-            box-shadow: 0 3px 10px rgba(255, 0, 110, 0.2);
-        }
-        
-        .btn-reset:hover {
-            box-shadow: 0 5px 15px rgba(255, 0, 110, 0.4);
-        }
-        
         .btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
@@ -517,32 +504,6 @@
             100% { transform: rotate(360deg); }
         }
         
-        /* Exit Limit Info */
-        .exit-limit-info {
-            background: rgba(10, 10, 26, 0.7);
-            border-radius: 15px;
-            padding: 25px;
-            border: 1px solid rgba(0, 255, 157, 0.2);
-            margin-bottom: 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            backdrop-filter: blur(10px);
-        }
-        
-        .limit-text {
-            font-size: 18px;
-            color: var(--secondary);
-            font-weight: 600;
-        }
-        
-        .limit-value {
-            font-size: 22px;
-            font-weight: 700;
-            color: var(--primary);
-            text-shadow: 0 0 10px rgba(0, 255, 157, 0.3);
-        }
-        
         /* Sync Status */
         .sync-status {
             position: fixed;
@@ -659,11 +620,6 @@
                 <button id="logout-btn" class="logout-btn">Logout</button>
             </div>
             
-            <div class="exit-limit-info">
-                <div class="limit-text">Remaining Exit Limit Today:</div>
-                <div class="limit-value" id="remaining-exits">4/4</div>
-            </div>
-            
             <div class="time-tracker">
                 <h3 class="tracker-title">Exit Permission Tracker</h3>
                 <div id="tracker-alert" class="alert"></div>
@@ -710,7 +666,6 @@
                             <th>End Time</th>
                             <th>Duration</th>
                             <th>Status</th>
-                            <th>Action</th>
                         </tr>
                     </thead>
                     <tbody id="activity-body">
@@ -728,20 +683,16 @@
         // Konfigurasi Google Sheets
         const SPREADSHEET_ID = '1J7zVo4zh0kZISjyx15PPhDnxfqGnEdXKWYw3XHAdflM';
         const ACTIVITY_SHEET_GID = '19279517'; // GID untuk sheet aktivitas
-        const POSITION_LIMIT_SHEET_GID = '1500109710'; // GID untuk sheet limit per jabatan
         
         // Google Apps Script URL untuk menyimpan data
         // Anda perlu membuat Google Apps Script untuk menangani permintaan ini
-        // Contoh: https://script.google.com/macros/s/AKfycbx1234567890abcdef1234567890abcdef/exec
-        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx1234567890abcdef1234567890abcdef/exec';
+        const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec'; // Ganti dengan URL Google Apps Script Anda
         
         // Variabel global
         let currentStaff = null;
         let startTime = null;
         let timerInterval = null;
         let allActivities = [];
-        let positionLimits = {};
-        let todayActivities = [];
         
         // DOM Elements
         const loginPage = document.getElementById('login-page');
@@ -762,7 +713,6 @@
         const syncStatusElement = document.getElementById('sync-status');
         const filterDateInput = document.getElementById('filter-date');
         const resetFilterBtn = document.getElementById('reset-filter');
-        const remainingExitsElement = document.getElementById('remaining-exits');
         
         // Event Listeners
         loginForm.addEventListener('submit', handleLogin);
@@ -777,7 +727,6 @@
             const today = new Date().toISOString().split('T')[0];
             filterDateInput.value = today;
             checkLoginStatus();
-            loadPositionLimits();
         });
         
         // Fungsi untuk mengecek status login
@@ -867,15 +816,6 @@
         
         // Fungsi untuk memulai waktu keluar
         function handleStartTime() {
-            // Cek batas maksimal keluar
-            const todayExitCount = getTodayExitCount();
-            const maxExits = getMaxExitsForPosition(currentStaff.position);
-            
-            if (todayExitCount >= maxExits) {
-                showTrackerAlert(`You have reached your maximum exit limit for today (${maxExits} times)`, 'warning');
-                return;
-            }
-            
             startTime = new Date();
             startTimeDisplay.textContent = formatTime(startTime);
             endTimeDisplay.textContent = '--:--:--';
@@ -1006,16 +946,8 @@
                     activity.name === currentStaff.name
                 );
                 
-                // Filter data untuk hari ini
-                todayActivities = staffActivities.filter(activity => 
-                    isToday(activity.date)
-                );
-                
                 // Tampilkan data dengan filter tanggal
                 displayFilteredActivities(staffActivities);
-                
-                // Update tampilan batas keluar
-                updateExitLimitDisplay();
                 
                 loadingElement.style.display = 'none';
             } catch (error) {
@@ -1023,7 +955,7 @@
                 loadingElement.style.display = 'none';
                 
                 const row = document.createElement('tr');
-                row.innerHTML = `<td colspan="6" style="text-align: center; color: var(--danger);">Failed to load activity data</td>`;
+                row.innerHTML = `<td colspan="5" style="text-align: center; color: var(--danger);">Failed to load activity data</td>`;
                 activityBody.appendChild(row);
             }
         }
@@ -1045,10 +977,10 @@
             // Tampilkan data
             if (filteredActivities.length === 0) {
                 const row = document.createElement('tr');
-                row.innerHTML = `<td colspan="6" style="text-align: center; color: var(--secondary);">No activities found</td>`;
+                row.innerHTML = `<td colspan="5" style="text-align: center; color: var(--secondary);">No activities found</td>`;
                 activityBody.appendChild(row);
             } else {
-                filteredActivities.forEach((activity, index) => {
+                filteredActivities.forEach(activity => {
                     const row = document.createElement('tr');
                     
                     // Cek apakah durasi melebihi 15 menit
@@ -1061,15 +993,9 @@
                         <td>${activity.end}</td>
                         <td class="${isLate ? 'duration-late' : 'duration-normal'}">${activity.duration}</td>
                         <td class="${isLate ? 'status-late' : 'status-active'}">${isLate ? 'Late' : 'On Time'}</td>
-                        <td><button class="btn btn-reset" data-index="${index}">Reset</button></td>
                     `;
                     
                     activityBody.appendChild(row);
-                });
-                
-                // Tambahkan event listener untuk tombol reset
-                document.querySelectorAll('.btn-reset').forEach(btn => {
-                    btn.addEventListener('click', handleResetActivity);
                 });
             }
         }
@@ -1089,95 +1015,6 @@
                 activity.name === currentStaff.name
             );
             displayFilteredActivities(staffActivities);
-        }
-        
-        // Fungsi untuk menangani reset aktivitas
-        function handleResetActivity(e) {
-            const index = e.target.getAttribute('data-index');
-            const filterDate = filterDateInput.value;
-            
-            // Dapatkan aktivitas yang akan dihapus
-            let activitiesToDelete;
-            if (filterDate) {
-                activitiesToDelete = allActivities.filter(activity => 
-                    activity.name === currentStaff.name && 
-                    activity.date === filterDate
-                );
-            } else {
-                activitiesToDelete = allActivities.filter(activity => 
-                    activity.name === currentStaff.name
-                );
-            }
-            
-            const activityToDelete = activitiesToDelete[index];
-            
-            if (confirm(`Are you sure you want to reset this activity from ${activityToDelete.date}?`)) {
-                // Hapus dari array allActivities
-                const globalIndex = allActivities.findIndex(activity => 
-                    activity.name === currentStaff.name && 
-                    activity.date === activityToDelete.date &&
-                    activity.start === activityToDelete.start
-                );
-                
-                if (globalIndex !== -1) {
-                    allActivities.splice(globalIndex, 1);
-                }
-                
-                // Tampilkan pesan sukses
-                showSyncStatus('Activity reset successfully', 'success');
-                
-                // Muat ulang data
-                loadActivityData();
-            }
-        }
-        
-        // Fungsi untuk memuat data batas per jabatan
-        async function loadPositionLimits() {
-            try {
-                const limitsData = await getPositionLimitsData();
-                
-                // Konversi data ke objek untuk pencarian cepat
-                limitsData.forEach(item => {
-                    positionLimits[item.position] = parseInt(item.limit);
-                });
-            } catch (error) {
-                console.error('Error loading position limits:', error);
-                
-                // Gunakan nilai default jika gagal memuat
-                positionLimits = {
-                    'Security Analyst': 4,
-                    'Network Engineer': 4,
-                    'Incident Responder': 4
-                };
-            }
-        }
-        
-        // Fungsi untuk mendapatkan batas maksimal keluar untuk posisi tertentu
-        function getMaxExitsForPosition(position) {
-            // Default ke 4 jika posisi tidak ditemukan
-            return positionLimits[position] || 4;
-        }
-        
-        // Fungsi untuk menghitung jumlah keluar hari ini
-        function getTodayExitCount() {
-            return todayActivities.length;
-        }
-        
-        // Fungsi untuk memperbarui tampilan batas keluar
-        function updateExitLimitDisplay() {
-            const todayCount = getTodayExitCount();
-            const maxCount = getMaxExitsForPosition(currentStaff.position);
-            
-            remainingExitsElement.textContent = `${maxCount - todayCount}/${maxCount}`;
-            
-            // Ubah warna jika mendekati batas
-            if (todayCount >= maxCount) {
-                remainingExitsElement.style.color = 'var(--danger)';
-            } else if (todayCount >= maxCount - 1) {
-                remainingExitsElement.style.color = 'var(--warning)';
-            } else {
-                remainingExitsElement.style.color = 'var(--primary)';
-            }
         }
         
         // Fungsi utilitas untuk memformat waktu
@@ -1206,12 +1043,6 @@
             const seconds = parseInt(parts[2]) || 0;
             
             return hours * 3600 + minutes * 60 + seconds;
-        }
-        
-        // Fungsi utilitas untuk memeriksa apakah tanggal adalah hari ini
-        function isToday(dateString) {
-            const today = new Date().toISOString().split('T')[0];
-            return dateString === today;
         }
         
         // Fungsi untuk mengambil data staff dari Google Sheets
@@ -1309,52 +1140,6 @@
             }
         }
         
-        // Fungsi untuk mengambil data batas per jabatan dari Google Sheets
-        async function getPositionLimitsData() {
-            try {
-                // Gunakan CSV export untuk mengambil data dari Google Sheets
-                const csvUrl = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:csv&gid=${POSITION_LIMIT_SHEET_GID}`;
-                const response = await fetch(csvUrl);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                
-                const csvText = await response.text();
-                
-                // Parse CSV
-                const lines = csvText.split('\n');
-                const limitsData = [];
-                
-                // Skip header row
-                for (let i = 1; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    if (line) {
-                        // Handle CSV dengan kemungkinan koma dalam nilai
-                        const values = parseCSVLine(line);
-                        
-                        if (values.length >= 2) {
-                            limitsData.push({
-                                position: values[0],
-                                limit: values[1]
-                            });
-                        }
-                    }
-                }
-                
-                return limitsData;
-            } catch (error) {
-                console.error('Error fetching position limits data:', error);
-                
-                // Fallback ke data simulasi jika gagal
-                return [
-                    { position: "Security Analyst", limit: "4" },
-                    { position: "Network Engineer", limit: "3" },
-                    { position: "Incident Responder", limit: "5" }
-                ];
-            }
-        }
-        
         // Fungsi untuk menyimpan data aktivitas ke Google Sheets
         async function saveActivityToGoogleSheets(startTime, endTime, duration, isLate) {
             const activityData = {
@@ -1409,7 +1194,7 @@
         async function submitViaGoogleForm(data) {
             // Anda perlu membuat Google Form dengan field yang sesuai
             // dan mengganti entry IDs dengan yang sesuai
-            const formUrl = 'https://docs.google.com/forms/d/e/1FAIpQLSdExampleFormId/formResponse';
+            const formUrl = 'https://docs.google.com/forms/d/e/YOUR_FORM_ID/formResponse';
             
             const formData = new URLSearchParams();
             formData.append('entry.123456789', data.date); // Tanggal
